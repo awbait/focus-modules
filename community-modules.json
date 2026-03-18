@@ -4,7 +4,7 @@
     "name": "Домовой",
     "author": "awbait",
     "description": "Виджет управления голосовым ассистентом: статус, микрофон, история команд.",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "repo": "awbait/domovoy-control",
     "download_url": "https://github.com/awbait/domovoy-control/releases/latest/download/domovoy-control.zip",
     "homepage": "https://github.com/awbait/domovoy-control",
