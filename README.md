@@ -1,31 +1,31 @@
 # focus-modules
 
-External modules for [focus-dashboard](../focus-dashboard).
+Внешние модули для [focus-dashboard](../focus-dashboard).
 
-Each module is a self-contained directory that packages into a `.zip` and is
-installed via the focus-dashboard admin panel — no recompilation of the host
-app required.
+Каждый модуль — самостоятельная директория, которая собирается в `.zip` и
+устанавливается через панель администратора. Перекомпилировать host-приложение
+не нужно.
 
 ---
 
-## Module structure
+## Структура модуля
 
 ```
 my-module/
-├── manifest.json       # required — id, name, version, description
-├── migrations.sql      # optional — SQL run against the main DB on install
-├── frontend/           # optional — widget source (TypeScript + Vite)
+├── manifest.json       # обязательно — id, name, version, description
+├── migrations.sql      # опционально — SQL, выполняется при установке
+├── frontend/           # опционально — исходник виджета (TypeScript + Vite)
 │   ├── src/widget.tsx
 │   ├── vite.config.ts
 │   └── package.json
-├── backend/            # optional — Go HTTP server (focus-module/1 protocol)
+├── backend/            # опционально — Go HTTP-сервер (протокол focus-module/1)
 │   ├── main.go
 │   └── go.mod
-├── build.sh            # packages everything into {id}.zip
-└── build.ps1           # same, for Windows
+├── build.sh            # сборка ZIP (Linux / macOS)
+└── build.ps1           # сборка ZIP (Windows)
 ```
 
-**At least one of** `frontend/` (widget.js) or `backend/` is required.
+Обязательно наличие хотя бы одного из: `frontend/` (widget.js) или `backend/`.
 
 ---
 
@@ -34,46 +34,46 @@ my-module/
 ```json
 {
   "id": "my-module",
-  "name": "My Module",
-  "description": "What it does",
+  "name": "Мой модуль",
+  "description": "Что делает",
   "version": "0.1.0",
-  "author": "you"
+  "author": "автор"
 }
 ```
 
 ---
 
-## Backend protocol (focus-module/1)
+## Протокол бэкенда (focus-module/1)
 
-The backend binary must:
+Бинарник бэкенда обязан:
 
-1. Read `PORT` from env — the host assigns a free port from its pool.
-2. Bind the TCP listener on `127.0.0.1:{PORT}` **before** writing the handshake.
-3. Write a single JSON line to stdout:
+1. Прочитать `PORT` из окружения — хост выделяет свободный порт из пула.
+2. Открыть TCP-listener на `127.0.0.1:{PORT}` **до** записи handshake.
+3. Вывести одну JSON-строку в stdout:
    ```json
    {"protocol":"focus-module/1","port":8700,"name":"my-module"}
    ```
-4. Expose `GET /health` → `200 OK` (used by the host for readiness check).
+4. Отвечать `200 OK` на `GET /health` — хост использует это как readiness probe.
 
-The host reverse-proxies `/api/modules/{id}/api/*` → `/{rest}` on the backend.
+Хост проксирует `/api/modules/{id}/api/*` → `/{rest}` на бэкенд модуля.
 
 ---
 
-## Building
+## Сборка
 
 ```bash
 cd my-module
 bash build.sh        # → my-module.zip
 ```
 
-The script builds the frontend (bun), compiles the backend (linux/amd64), and
-packages `manifest.json`, `widget.js`, `migrations.sql`, and `backend` into a ZIP.
+Скрипт собирает фронтенд (bun), компилирует бэкенд (linux/amd64) и упаковывает
+`manifest.json`, `widget.js`, `migrations.sql` и `backend` в ZIP.
 
 ---
 
-## Installing
+## Установка
 
-Upload the `.zip` via **focus-dashboard → Admin → Modules → Upload**.
+Загрузить `.zip` через **focus-dashboard → Администрирование → Модули → Загрузить**.
 
-The module appears in the module list immediately (no restart needed).
-To add the widget to a dashboard, enter edit mode and click **Add widget**.
+Модуль появляется в списке сразу, без перезапуска.
+Чтобы добавить виджет на доску, войдите в режим редактирования и нажмите **Добавить виджет**.

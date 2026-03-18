@@ -1,25 +1,25 @@
 # domovoy-control
 
-focus-dashboard module — control panel widget for the
-[Domovoy](../../domovoy) voice assistant.
+Модуль для focus-dashboard — виджет управления голосовым ассистентом
+[Домовой](../../domovoy).
 
-## Build
+## Сборка
 
 ```bash
 bash build.sh    # → domovoy-control.zip
 ```
 
-## Install
+## Установка
 
-Upload `domovoy-control.zip` via **focus-dashboard → Admin → Modules → Upload**.
+Загрузить `domovoy-control.zip` через **focus-dashboard → Администрирование → Модули → Загрузить**.
 
 ## API
 
-Proxied under `/api/modules/domovoy-control/api/`:
+Доступно по пути `/api/modules/domovoy-control/api/`:
 
-| Method | Path        | Description             |
-|--------|-------------|-------------------------|
-| GET    | `/health`   | Readiness probe         |
-| GET    | `/status`   | Current assistant state |
-| POST   | `/command`  | Send a text command     |
-| GET    | `/manifest` | Module metadata         |
+| Метод | Путь        | Описание                     |
+|-------|-------------|------------------------------|
+| GET   | `/health`   | Readiness probe              |
+| GET   | `/status`   | Текущее состояние ассистента |
+| POST  | `/command`  | Отправить текстовую команду  |
+| GET   | `/manifest` | Метаданные модуля            |
