@@ -1,0 +1,12 @@
+[
+  {
+    "id": "domovoy-control",
+    "name": "Домовой",
+    "author": "awbait",
+    "description": "Виджет управления голосовым ассистентом: статус, микрофон, история команд.",
+    "version": "0.1.0",
+    "download_url": "https://github.com/awbait/domovoy-control/releases/latest/download/domovoy-control.zip",
+    "homepage": "https://github.com/awbait/domovoy-control",
+    "tags": ["smart-home", "assistant", "voice"]
+  }
+]
