@@ -1,0 +1,66 @@
+name: Check module updates
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # every day at 03:00 UTC
+  workflow_dispatch:       # manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check latest releases and update versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CHANGED=0
+
+          REGISTRY=$(cat community-modules.json)
+          UPDATED="$REGISTRY"
+
+          for row in $(echo "$REGISTRY" | jq -r '.[] | @base64'); do
+            _jq() { echo "$row" | base64 -d | jq -r "$1"; }
+
+            ID=$(_jq '.id')
+            REPO=$(_jq '.repo // empty')
+            CURRENT=$(_jq '.version')
+
+            if [ -z "$REPO" ]; then
+              echo "  skip $ID (no repo field)"
+              continue
+            fi
+
+            LATEST=$(gh api "repos/$REPO/releases/latest" --jq '.tag_name' 2>/dev/null | sed 's/^v//')
+
+            if [ -z "$LATEST" ] || [ "$LATEST" = "null" ]; then
+              echo "  skip $ID (no release found)"
+              continue
+            fi
+
+            if [ "$LATEST" = "$CURRENT" ]; then
+              echo "  ok   $ID $CURRENT"
+            else
+              echo "  update $ID $CURRENT → $LATEST"
+              UPDATED=$(echo "$UPDATED" | jq \
+                --arg id "$ID" --arg v "$LATEST" \
+                'map(if .id == $id then .version = $v else . end)')
+              CHANGED=1
+            fi
+          done
+
+          if [ "$CHANGED" = "1" ]; then
+            echo "$UPDATED" | jq '.' > community-modules.json
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add community-modules.json
+            git commit -m "chore: sync module versions"
+            git push
+          else
+            echo "All modules are up to date."
+          fi
