@@ -46,6 +46,8 @@ func main() {
 	mux.HandleFunc("POST /increment", handleIncrement)
 	mux.HandleFunc("POST /decrement", handleDecrement)
 	mux.HandleFunc("POST /reset", handleReset)
+	mux.HandleFunc("GET /settings", handleGetSettings)
+	mux.HandleFunc("PUT /settings", handlePutSettings)
 	mux.HandleFunc("GET /widget-settings/{widgetId}", handleGetWidgetSettings)
 	mux.HandleFunc("PUT /widget-settings/{widgetId}", handlePutWidgetSettings)
 
@@ -126,16 +128,25 @@ func handleGetHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleIncrement(w http.ResponseWriter, r *http.Request) {
+	if !requireRole(w, r, "resident") {
+		return
+	}
 	step := parseStep(r)
 	mutateValue(w, step)
 }
 
 func handleDecrement(w http.ResponseWriter, r *http.Request) {
+	if !requireRole(w, r, "resident") {
+		return
+	}
 	step := parseStep(r)
 	mutateValue(w, -step)
 }
 
-func handleReset(w http.ResponseWriter, _ *http.Request) {
+func handleReset(w http.ResponseWriter, r *http.Request) {
+	if !requireRole(w, r, "resident") {
+		return
+	}
 	// Get current value to compute delta.
 	var current int
 	if err := db.QueryRow("SELECT value FROM ec_values WHERE id = 1").Scan(&current); err != nil {
@@ -153,17 +164,63 @@ func handleReset(w http.ResponseWriter, _ *http.Request) {
 	jsonResponse(w, map[string]int{"value": 0, "delta": -current})
 }
 
-func handleGetWidgetSettings(w http.ResponseWriter, r *http.Request) {
-	_ = r.PathValue("widgetId")
-	// Return default settings — module manages its own simple defaults.
-	jsonResponse(w, map[string]int{"step": 1})
+func handleGetSettings(w http.ResponseWriter, _ *http.Request) {
+	var raw string
+	err := db.QueryRow("SELECT value FROM ec_settings WHERE key = 'global'").Scan(&raw)
+	if err != nil {
+		jsonResponse(w, map[string]int{"step": 1})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, raw)
+}
+
+func handlePutSettings(w http.ResponseWriter, r *http.Request) {
+	if !requireRole(w, r, "owner") {
+		return
+	}
+	var body map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
+		return
+	}
+	data, _ := json.Marshal(body)
+	_, err := db.Exec(
+		"INSERT INTO ec_settings (key, value) VALUES ('global', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+		string(data),
+	)
+	if err != nil {
+		httpError(w, "save settings", err)
+		return
+	}
+	jsonResponse(w, map[string]bool{"ok": true})
+}
+
+func handleGetWidgetSettings(w http.ResponseWriter, _ *http.Request) {
+	// Per-widget settings inherit from global settings.
+	handleGetSettings(w, nil)
 }
 
 func handlePutWidgetSettings(w http.ResponseWriter, r *http.Request) {
-	_ = r.PathValue("widgetId")
-	// Accept settings but this example module doesn't persist per-widget settings server-side.
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, `{"ok":true}`)
+	handlePutSettings(w, r)
+}
+
+// --- RBAC ---
+
+var roleLevel = map[string]int{"guest": 0, "resident": 1, "owner": 2}
+
+// requireRole checks X-Focus-User-Role header injected by the dashboard proxy.
+// Returns false and writes 403 if the user lacks sufficient permissions.
+func requireRole(w http.ResponseWriter, r *http.Request, required string) bool {
+	role := r.Header.Get("X-Focus-User-Role")
+	if role == "" {
+		role = "guest"
+	}
+	if roleLevel[role] < roleLevel[required] {
+		http.Error(w, fmt.Sprintf(`{"error":"forbidden: requires %s"}`, required), http.StatusForbidden)
+		return false
+	}
+	return true
 }
 
 // --- Helpers ---

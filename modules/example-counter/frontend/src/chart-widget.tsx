@@ -25,10 +25,10 @@ function ChartApp({ focus }: WidgetProps) {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>Counter History</div>
+      <div style={styles.header}>{focus.t('widget.chart.title')}</div>
       <div style={styles.chartContainer}>
         {history.length === 0 ? (
-          <div style={styles.empty}>No data yet</div>
+          <div style={styles.empty}>{focus.t('widget.chart.empty')}</div>
         ) : (
           <LineChart history={history} />
         )}

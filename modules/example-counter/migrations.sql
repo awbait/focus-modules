@@ -11,3 +11,10 @@ CREATE TABLE IF NOT EXISTS ec_history (
     delta      INTEGER NOT NULL,
     created_at DATETIME DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS ec_settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT '{}'
+);
+
+INSERT OR IGNORE INTO ec_settings (key, value) VALUES ('global', '{"step":1}');
