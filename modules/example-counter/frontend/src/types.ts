@@ -8,7 +8,8 @@ export type {
 } from '@focus-dashboard/sdk-types'
 
 // ---------------------------------------------------------------------------
-// ReactWidgetElement — base class for custom element wrappers
+// ReactWidgetElement — base class for custom element wrappers.
+// Will move to @focus-dashboard/sdk-types in v0.4.0.
 // ---------------------------------------------------------------------------
 
 export class ReactWidgetElement extends HTMLElement {
