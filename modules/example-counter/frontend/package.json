@@ -1,0 +1,14 @@
+{
+  "name": "example-counter-frontend",
+  "private": true,
+  "scripts": {
+    "build": "bun run build.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@focus-dashboard/sdk-types": "^0.1.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
