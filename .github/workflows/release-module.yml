@@ -1,0 +1,132 @@
+name: Release module
+
+on:
+  push:
+    tags:
+      - '*/v*'   # example-counter/v1.0.1
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse tag
+        id: meta
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          MODULE_ID="${TAG%%/v*}"
+          VERSION="${TAG#*/v}"
+          MODULE_DIR="modules/$MODULE_ID"
+
+          if [ ! -d "$MODULE_DIR" ]; then
+            echo "::error::Module directory $MODULE_DIR not found"
+            exit 1
+          fi
+
+          echo "module_id=$MODULE_ID"   >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION"       >> "$GITHUB_OUTPUT"
+          echo "module_dir=$MODULE_DIR" >> "$GITHUB_OUTPUT"
+          echo "Module: $MODULE_ID v$VERSION ($MODULE_DIR)"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ steps.meta.outputs.module_dir }}/backend/go.mod
+
+      - name: Build frontend
+        working-directory: ${{ steps.meta.outputs.module_dir }}/frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Build backend (linux/amd64)
+        working-directory: ${{ steps.meta.outputs.module_dir }}/backend
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+            go build -trimpath -ldflags="-s -w" -o ../dist/backend .
+
+      - name: Update manifest version
+        working-directory: ${{ steps.meta.outputs.module_dir }}
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          jq --arg v "$VERSION" '.version = $v' manifest.json > manifest.tmp.json
+          mv manifest.tmp.json manifest.json
+
+      - name: Package ZIP
+        working-directory: ${{ steps.meta.outputs.module_dir }}
+        run: |
+          MODULE_ID="${{ steps.meta.outputs.module_id }}"
+          python3 -c "
+          import zipfile, os
+
+          files = [
+              ('manifest.json',         'manifest.json'),
+              ('frontend/dist/widget.js',   'widget.js'),
+              ('frontend/dist/settings.js', 'settings.js'),
+              ('migrations.sql',        'migrations.sql'),
+              ('dist/backend',          'backend'),
+              ('preview.png',           'preview.png'),
+          ]
+
+          # Locale files
+          locale_dir = 'locales'
+          if os.path.isdir(locale_dir):
+              for f in sorted(os.listdir(locale_dir)):
+                  if f.endswith('.json'):
+                      files.append((f'locales/{f}', f'locales/{f}'))
+
+          with zipfile.ZipFile('${MODULE_ID}.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+              for src, arc in files:
+                  if not os.path.exists(src):
+                      print(f'  skip {src}')
+                      continue
+                  info = zipfile.ZipInfo(arc)
+                  if arc == 'backend':
+                      info.external_attr = 0o755 << 16
+                  with open(src, 'rb') as f:
+                      z.writestr(info, f.read())
+                  print(f'  + {arc}')
+
+          size = round(os.path.getsize('${MODULE_ID}.zip') / 1024)
+          print(f'ZIP ready: {size} KB')
+          "
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.meta.outputs.module_dir }}/${{ steps.meta.outputs.module_id }}.zip
+          name: ${{ steps.meta.outputs.module_id }} v${{ steps.meta.outputs.version }}
+          generate_release_notes: true
+
+      - name: Update community-modules.json
+        run: |
+          MODULE_ID="${{ steps.meta.outputs.module_id }}"
+          VERSION="${{ steps.meta.outputs.version }}"
+          TAG="${GITHUB_REF_NAME}"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${MODULE_ID}.zip"
+
+          jq --arg id "$MODULE_ID" \
+             --arg v "$VERSION" \
+             --arg url "$DOWNLOAD_URL" \
+             'map(if .id == $id then .version = $v | .download_url = $url else . end)' \
+             community-modules.json > community-modules.tmp.json
+          mv community-modules.tmp.json community-modules.json
+
+          if git diff --quiet community-modules.json; then
+            echo "No changes to community-modules.json"
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add community-modules.json
+          git commit -m "chore: update $MODULE_ID to v$VERSION"
+          git push origin HEAD:main
