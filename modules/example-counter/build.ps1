@@ -12,10 +12,13 @@ Write-Host "==> Building $ModuleID..."
 if (Test-Path $OutDir) { Remove-Item -Recurse -Force $OutDir }
 New-Item -ItemType Directory -Path $OutDir | Out-Null
 
-# 1. Frontend: concatenate Web Components into widget.js
+# 1. Frontend: bundle TSX -> widget.js
 Write-Host "  -> Building frontend..."
-Get-Content frontend/src/counter-widget.js, frontend/src/chart-widget.js |
-    Set-Content "$OutDir/widget.js"
+Push-Location frontend
+bun install --frozen-lockfile
+bun run build
+Copy-Item dist/widget.js "../$OutDir/widget.js"
+Pop-Location
 
 # 2. Backend: compile Go binary (static, Linux amd64)
 Write-Host "  -> Building backend..."

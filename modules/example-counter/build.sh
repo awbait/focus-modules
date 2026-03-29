@@ -13,9 +13,13 @@ echo "==> Building $MODULE_ID..."
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
-# 1. Frontend: concatenate Web Components into widget.js
+# 1. Frontend: bundle TSX → widget.js
 echo "  -> Building frontend..."
-cat frontend/src/counter-widget.js frontend/src/chart-widget.js > "$OUT_DIR/widget.js"
+cd frontend
+bun install --frozen-lockfile
+bun run build
+cp dist/widget.js "../$OUT_DIR/widget.js"
+cd ..
 
 # 2. Backend: compile Go binary (static, Linux amd64)
 echo "  -> Building backend..."

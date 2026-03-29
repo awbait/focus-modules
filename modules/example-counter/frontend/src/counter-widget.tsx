@@ -1,21 +1,28 @@
-const { createElement: h, useState, useEffect, useCallback } = window.React
-const { createRoot } = window.ReactDOM
+import React, { useState, useEffect, useCallback } from 'react'
+import { createRoot } from 'react-dom/client'
+import type { WidgetProps, ValueResponse, WidgetSettings, Styles } from './types'
+import { ReactWidgetElement } from './types'
 
-function CounterApp({ focus }) {
+function CounterApp({ focus }: WidgetProps) {
   const [value, setValue] = useState(0)
   const [step, setStep] = useState(1)
 
   useEffect(() => {
-    focus.getSettings().then((s) => {
-      if (s && s.step > 0) setStep(s.step)
-    }).catch(() => {})
+    focus
+      .getSettings<WidgetSettings>()
+      .then((s) => {
+        if (s?.step > 0) setStep(s.step)
+      })
+      .catch(() => {})
 
-    focus.api('GET', '/value').then((data) => {
-      setValue(data.value)
-    }).catch((err) => console.error('example-counter: load value', err))
+    focus
+      .api<ValueResponse>('GET', '/value')
+      .then((data) => setValue(data.value))
+      .catch((err) => console.error('example-counter: load value', err))
 
     const unsub = focus.on('value.changed', (payload) => {
-      setValue(payload.value)
+      const p = payload as ValueResponse
+      setValue(p.value)
     })
 
     focus.ready()
@@ -23,31 +30,45 @@ function CounterApp({ focus }) {
   }, [focus])
 
   const increment = useCallback(() => {
-    focus.api('POST', '/increment', { step }).then((data) => setValue(data.value))
+    focus
+      .api<ValueResponse>('POST', '/increment', { step })
+      .then((data) => setValue(data.value))
       .catch((err) => console.error('example-counter: increment', err))
   }, [focus, step])
 
   const decrement = useCallback(() => {
-    focus.api('POST', '/decrement', { step }).then((data) => setValue(data.value))
+    focus
+      .api<ValueResponse>('POST', '/decrement', { step })
+      .then((data) => setValue(data.value))
       .catch((err) => console.error('example-counter: decrement', err))
   }, [focus, step])
 
   const reset = useCallback(() => {
-    focus.api('POST', '/reset').then((data) => setValue(data.value))
+    focus
+      .api<ValueResponse>('POST', '/reset')
+      .then((data) => setValue(data.value))
       .catch((err) => console.error('example-counter: reset', err))
   }, [focus])
 
-  return h('div', { style: styles.container },
-    h('div', { style: styles.value }, value),
-    h('div', { style: styles.controls },
-      h('button', { style: styles.btn, onClick: decrement, title: 'Decrement' }, '\u2212'),
-      h('button', { style: { ...styles.btn, ...styles.resetBtn }, onClick: reset }, 'Reset'),
-      h('button', { style: styles.btn, onClick: increment, title: 'Increment' }, '+'),
-    ),
+  return (
+    <div style={styles.container}>
+      <div style={styles.value}>{value}</div>
+      <div style={styles.controls}>
+        <button style={styles.btn} onClick={decrement} title="Decrement">
+          &minus;
+        </button>
+        <button style={{ ...styles.btn, ...styles.resetBtn }} onClick={reset}>
+          Reset
+        </button>
+        <button style={styles.btn} onClick={increment} title="Increment">
+          +
+        </button>
+      </div>
+    </div>
   )
 }
 
-const styles = {
+const styles: Styles = {
   container: {
     display: 'flex',
     flexDirection: 'column',
@@ -91,18 +112,11 @@ const styles = {
   },
 }
 
-class ExampleCounterCounterWidget extends HTMLElement {
+class ExampleCounterCounterWidget extends ReactWidgetElement {
   connectedCallback() {
     const focus = window.FocusSDK.create(this)
     this._root = createRoot(this)
-    this._root.render(h(CounterApp, { focus }))
-  }
-
-  disconnectedCallback() {
-    if (this._root) {
-      this._root.unmount()
-      this._root = null
-    }
+    this._root.render(<CounterApp focus={focus} />)
   }
 }
 
