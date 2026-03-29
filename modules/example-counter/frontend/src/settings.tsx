@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ReactWidgetElement } from './types'
-import type { FocusInstance, Styles } from './types'
-
-interface ModuleSettings {
-  step: number
-}
+import type { FocusInstance, WidgetSettings, Styles } from './types'
 
 function SettingsApp({ focus }: { focus: FocusInstance }) {
   const [step, setStep] = useState(1)
@@ -16,7 +12,7 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
     focus.can('admin').then(setCanAdmin).catch(() => setCanAdmin(false))
 
     focus
-      .api<ModuleSettings>('GET', '/settings')
+      .api<WidgetSettings>('GET', '/settings')
       .then((s) => {
         if (s?.step > 0) setStep(s.step)
       })

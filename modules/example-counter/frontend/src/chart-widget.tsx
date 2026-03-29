@@ -127,8 +127,8 @@ const styles: Styles = {
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    color: 'var(--foreground, #e2e8f0)',
+    fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)',
+    color: 'var(--foreground)',
   },
   header: {
     fontSize: '0.875rem',
