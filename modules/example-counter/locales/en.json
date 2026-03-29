@@ -8,9 +8,7 @@
     },
     "chart": {
       "title": "Counter History",
-      "empty": "No data yet. Use the counter widget to add entries.",
-      "value": "Value",
-      "time": "Time"
+      "empty": "No data yet. Use the counter widget to add entries."
     }
   },
   "settings": {

@@ -19,6 +19,7 @@ cd frontend
 bun install --frozen-lockfile
 bun run build
 cp dist/widget.js "../$OUT_DIR/widget.js"
+cp dist/settings.js "../$OUT_DIR/settings.js"
 cd ..
 
 # 2. Backend: compile Go binary (static, Linux amd64)
@@ -38,7 +39,7 @@ cp locales/*.json "$OUT_DIR/locales/"
 # 4. Package ZIP
 echo "  -> Packaging ZIP..."
 cd "$OUT_DIR"
-zip -r "../${MODULE_ID}.zip" manifest.json widget.js backend migrations.sql locales/
+zip -r "../${MODULE_ID}.zip" manifest.json widget.js settings.js backend migrations.sql locales/
 cd ..
 
 echo "==> Done: ${MODULE_ID}.zip ($(du -h "${MODULE_ID}.zip" | cut -f1))"

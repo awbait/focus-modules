@@ -22,10 +22,6 @@ func main() {
 	if port == "" {
 		port = "8700"
 	}
-	moduleID := os.Getenv("MODULE_ID")
-	if moduleID == "" {
-		moduleID = "example-counter"
-	}
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
 		dbPath = "focus.db"
@@ -120,6 +116,10 @@ func handleGetHistory(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		entries = append(entries, e)
+	}
+	if err := rows.Err(); err != nil {
+		httpError(w, "iterate history", err)
+		return
 	}
 	if entries == nil {
 		entries = []entry{}
@@ -261,17 +261,21 @@ func recordHistory(value, delta int) {
 	}
 }
 
+// hostBaseURL is the dashboard's internal API base. Modules communicate back
+// to the host via this URL for WebSocket broadcasts and domain events.
+var hostBaseURL = getenv("HOST_URL", "http://127.0.0.1:8080")
+
 func broadcastChange(value, delta int) {
 	payload := map[string]any{"value": value, "delta": delta}
 
 	// WebSocket broadcast
-	go postJSON("http://127.0.0.1:8080/internal/ws/broadcast", map[string]any{
+	go postJSON(hostBaseURL+"/internal/ws/broadcast", map[string]any{
 		"event":   "example-counter.value.changed",
 		"payload": payload,
 	})
 
 	// Domain event
-	go postJSON("http://127.0.0.1:8080/internal/events/publish", map[string]any{
+	go postJSON(hostBaseURL+"/internal/events/publish", map[string]any{
 		"type":    "example-counter.value.changed",
 		"source":  "example-counter",
 		"payload": payload,
@@ -300,5 +304,15 @@ func jsonResponse(w http.ResponseWriter, v any) {
 
 func httpError(w http.ResponseWriter, context string, err error) {
 	log.Printf("%s: %v", context, err)
-	http.Error(w, fmt.Sprintf(`{"error":"%s: %s"}`, context, err), http.StatusInternalServerError)
+	msg := map[string]string{"error": fmt.Sprintf("%s: %s", context, err)}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusInternalServerError)
+	json.NewEncoder(w).Encode(msg)
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
