@@ -36,6 +36,12 @@ jobs:
               continue
             fi
 
+            # Skip modules from this repo — they are updated by release-module.yml
+            if [ "$REPO" = "${{ github.repository }}" ]; then
+              echo "  skip $ID (local module)"
+              continue
+            fi
+
             LATEST=$(gh api "repos/$REPO/releases/latest" --jq '.tag_name' 2>/dev/null | sed 's/^v//')
 
             if [ -z "$LATEST" ] || [ "$LATEST" = "null" ]; then
