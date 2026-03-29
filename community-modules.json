@@ -13,5 +13,20 @@
       "assistant",
       "voice"
     ]
+  },
+  {
+    "id": "example-counter",
+    "name": "Example Counter",
+    "author": "awbait",
+    "description": "Template module demonstrating all platform features: REST API, WebSocket, events, migrations, i18n, widget settings",
+    "version": "1.0.0",
+    "repo": "awbait/focus-modules",
+    "download_url": "https://github.com/awbait/focus-modules/releases/latest/download/example-counter.zip",
+    "homepage": "https://github.com/awbait/focus-modules",
+    "tags": [
+      "example",
+      "template",
+      "counter"
+    ]
   }
 ]

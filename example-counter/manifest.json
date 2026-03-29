@@ -1,0 +1,35 @@
+{
+  "id": "example-counter",
+  "name": "Example Counter",
+  "description": "Template module demonstrating all platform features: REST API, WebSocket, events, migrations, i18n, widget settings",
+  "version": "1.0.0",
+  "author": "awbait",
+  "widgets": [
+    {
+      "id": "counter",
+      "name": "Counter",
+      "description": "Shows current count with +/- buttons",
+      "min": "1x1",
+      "max": "2x2",
+      "default": "1x1"
+    },
+    {
+      "id": "chart",
+      "name": "Counter History",
+      "description": "Line chart of value changes over time",
+      "min": "2x1",
+      "max": "4x3",
+      "default": "2x2"
+    }
+  ],
+  "events": [
+    {
+      "type": "example-counter.value.changed",
+      "description": "Fired when counter value changes",
+      "payload": {
+        "value": "number",
+        "delta": "number"
+      }
+    }
+  ]
+}

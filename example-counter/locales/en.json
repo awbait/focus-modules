@@ -1,0 +1,22 @@
+{
+  "example-counter": {
+    "widget": {
+      "counter": {
+        "title": "Counter",
+        "increment": "Increment",
+        "decrement": "Decrement",
+        "reset": "Reset"
+      },
+      "chart": {
+        "title": "Counter History",
+        "empty": "No data yet. Use the counter widget to add entries.",
+        "value": "Value",
+        "time": "Time"
+      }
+    },
+    "settings": {
+      "step": "Step size",
+      "stepDescription": "Amount to increment/decrement per click"
+    }
+  }
+}
