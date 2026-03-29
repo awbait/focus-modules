@@ -18,6 +18,7 @@ Push-Location frontend
 bun install --frozen-lockfile
 bun run build
 Copy-Item dist/widget.js "../$OutDir/widget.js"
+Copy-Item dist/settings.js "../$OutDir/settings.js"
 Pop-Location
 
 # 2. Backend: compile Go binary (static, Linux amd64)

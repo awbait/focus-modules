@@ -6,8 +6,15 @@ import { ReactWidgetElement } from './types'
 function CounterApp({ focus }: WidgetProps) {
   const [value, setValue] = useState(0)
   const [step, setStep] = useState(1)
+  const [canWrite, setCanWrite] = useState(false)
+
+  const checkPermission = useCallback(() => {
+    focus.can('write').then(setCanWrite).catch(() => setCanWrite(false))
+  }, [focus])
 
   useEffect(() => {
+    checkPermission()
+
     focus
       .getSettings<WidgetSettings>()
       .then((s) => {
@@ -27,40 +34,57 @@ function CounterApp({ focus }: WidgetProps) {
 
     focus.ready()
     return unsub
-  }, [focus])
+  }, [focus, checkPermission])
 
-  const increment = useCallback(() => {
-    focus
-      .api<ValueResponse>('POST', '/increment', { step })
-      .then((data) => setValue(data.value))
-      .catch((err) => console.error('example-counter: increment', err))
-  }, [focus, step])
+  // Instant disable on logout; re-check on window focus (other tabs).
+  useEffect(() => {
+    const onLogout = () => setCanWrite(false)
+    const onFocus = () => checkPermission()
+    window.addEventListener('auth:unauthorized', onLogout)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      window.removeEventListener('auth:unauthorized', onLogout)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [checkPermission])
 
-  const decrement = useCallback(() => {
-    focus
-      .api<ValueResponse>('POST', '/decrement', { step })
-      .then((data) => setValue(data.value))
-      .catch((err) => console.error('example-counter: decrement', err))
-  }, [focus, step])
+  const guardedAction = useCallback(
+    (action: () => Promise<void>) => {
+      return () => {
+        action().catch((err: Error) => {
+          if (err.message.includes('403') || err.message.includes('401')) {
+            setCanWrite(false)
+          }
+          console.error('example-counter:', err)
+        })
+      }
+    },
+    [],
+  )
 
-  const reset = useCallback(() => {
-    focus
-      .api<ValueResponse>('POST', '/reset')
-      .then((data) => setValue(data.value))
-      .catch((err) => console.error('example-counter: reset', err))
-  }, [focus])
+  const increment = guardedAction(() =>
+    focus.api<ValueResponse>('POST', '/increment', { step }).then((data) => setValue(data.value)),
+  )
+
+  const decrement = guardedAction(() =>
+    focus.api<ValueResponse>('POST', '/decrement', { step }).then((data) => setValue(data.value)),
+  )
+
+  const reset = guardedAction(() =>
+    focus.api<ValueResponse>('POST', '/reset').then((data) => setValue(data.value)),
+  )
 
   return (
     <div style={styles.container}>
       <div style={styles.value}>{value}</div>
       <div style={styles.controls}>
-        <button style={styles.btn} onClick={decrement} title="Decrement">
+        <button style={{ ...styles.btn, ...(!canWrite ? styles.disabled : {}) }} onClick={decrement} disabled={!canWrite} title={focus.t('widget.counter.decrement')}>
           &minus;
         </button>
-        <button style={{ ...styles.btn, ...styles.resetBtn }} onClick={reset}>
-          Reset
+        <button style={{ ...styles.btn, ...styles.resetBtn, ...(!canWrite ? styles.disabled : {}) }} onClick={reset} disabled={!canWrite}>
+          {focus.t('widget.counter.reset')}
         </button>
-        <button style={styles.btn} onClick={increment} title="Increment">
+        <button style={{ ...styles.btn, ...(!canWrite ? styles.disabled : {}) }} onClick={increment} disabled={!canWrite} title={focus.t('widget.counter.increment')}>
           +
         </button>
       </div>
@@ -76,8 +100,8 @@ const styles: Styles = {
     justifyContent: 'center',
     height: '100%',
     gap: '12px',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    color: 'var(--foreground, #e2e8f0)',
+    fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)',
+    color: 'var(--foreground)',
   },
   value: {
     fontSize: '3rem',
@@ -94,21 +118,31 @@ const styles: Styles = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1px solid var(--border, #334155)',
-    background: 'var(--card, #1e293b)',
-    color: 'var(--foreground, #e2e8f0)',
-    borderRadius: '8px',
+    border: '1px solid var(--border)',
+    background: 'color-mix(in oklch, var(--input) 30%, transparent)',
+    color: 'var(--foreground)',
+    borderRadius: 'var(--radius, 0.625rem)',
     cursor: 'pointer',
     fontSize: '1.25rem',
-    fontWeight: 600,
-    width: '40px',
-    height: '40px',
+    fontWeight: 500,
+    width: '36px',
+    height: '36px',
+    transition: 'background 0.15s, transform 0.1s',
   },
   resetBtn: {
-    fontSize: '0.75rem',
+    fontSize: '0.8125rem',
+    fontWeight: 500,
     width: 'auto',
     padding: '0 12px',
     height: '32px',
+    background: 'var(--primary)',
+    color: 'var(--primary-foreground)',
+    border: '1px solid transparent',
+  },
+  disabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+    pointerEvents: 'none' as const,
   },
 }
 
