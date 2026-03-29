@@ -5,22 +5,15 @@
     "": {
       "name": "example-counter-frontend",
       "devDependencies": {
-        "@focus-dashboard/sdk-types": "workspace:../../../../focus-dashboard/packages/sdk-types",
+        "@focus-dashboard/sdk-types": "^0.1.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
         "typescript": "^5.7.0",
       },
     },
-    "../../../../focus-dashboard/packages/sdk-types": {
-      "name": "@focus-dashboard/sdk-types",
-      "devDependencies": {
-        "@types/react": ">=18",
-        "@types/react-dom": ">=18",
-      },
-    },
   },
   "packages": {
-    "@focus-dashboard/sdk-types": ["@focus-dashboard/sdk-types@workspace:../../../../focus-dashboard/packages/sdk-types"],
+    "@focus-dashboard/sdk-types": ["@focus-dashboard/sdk-types@0.1.0", "", {}, "sha512-EyjBlEhcjnlCo0k9CTe37e7xVoFVNAN0tdFAYJS4BIoikmEZVi6bv2E7eX/TA744s4leLmKCkKSaDBTH266vFQ=="],
 
     "@types/react": ["@types/react@19.2.14", "", { "dependencies": { "csstype": "^3.2.2" } }, "sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w=="],
 

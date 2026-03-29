@@ -8,10 +8,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "dist",
-    "declaration": false,
-    "paths": {
-      "@focus-dashboard/sdk-types": ["../../../../focus-dashboard/packages/sdk-types/src/index.ts"]
-    }
+    "declaration": false
   },
   "include": ["src"]
 }
