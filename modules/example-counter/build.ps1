@@ -41,9 +41,18 @@ New-Item -ItemType Directory -Path "$OutDir/locales" -Force | Out-Null
 Copy-Item locales/*.json "$OutDir/locales/"
 if (Test-Path preview.png) { Copy-Item preview.png "$OutDir/" }
 
-# 4. Package ZIP
+# 4. Package ZIP (use .NET API to ensure forward slashes in entry paths)
 Write-Host "  -> Packaging ZIP..."
-Compress-Archive -Path "$OutDir/*" -DestinationPath "$ModuleID.zip" -Force
+$zipPath = Join-Path $ScriptDir "$ModuleID.zip"
+if (Test-Path $zipPath) { Remove-Item $zipPath }
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$distFull = (Resolve-Path $OutDir).Path
+$zip = [System.IO.Compression.ZipFile]::Open($zipPath, 'Create')
+Get-ChildItem -Path $distFull -Recurse -File | ForEach-Object {
+    $rel = $_.FullName.Substring($distFull.Length + 1).Replace('\', '/')
+    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $rel) | Out-Null
+}
+$zip.Dispose()
 
-$size = (Get-Item "$ModuleID.zip").Length / 1KB
+$size = (Get-Item $zipPath).Length / 1KB
 Write-Host "==> Done: $ModuleID.zip ($([math]::Round($size, 1)) KB)"
