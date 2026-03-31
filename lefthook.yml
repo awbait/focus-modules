@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{ts,tsx,js,jsx,json}"
+      run: bunx biome check --write --no-errors-on-unmatched --staged {staged_files}
+      stage_fixed: true
+    golangci-lint-sdk:
+      root: sdk/go/focusmodule/
+      glob: "*.go"
+      run: golangci-lint run --fix --issues-exit-code 0 ./...
+      stage_fixed: true
+    golangci-lint-modules:
+      root: modules/example-counter/backend/
+      glob: "*.go"
+      run: golangci-lint run --fix --issues-exit-code 0 ./...
+      stage_fixed: true

@@ -15,7 +15,7 @@ var db *sql.DB
 
 func main() {
 	db = fm.OpenDB()
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", fm.HealthHandler)
@@ -60,7 +60,7 @@ func handleGetHistory(w http.ResponseWriter, r *http.Request) {
 		fm.InternalError(w, "query history", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	type entry struct {
 		ID        int    `json:"id"`
@@ -131,7 +131,7 @@ func handleGetSettings(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, raw)
+	_, _ = fmt.Fprint(w, raw)
 }
 
 func handlePutSettings(w http.ResponseWriter, r *http.Request) {

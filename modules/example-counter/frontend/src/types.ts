@@ -3,8 +3,8 @@ import type { Root } from 'react-dom/client'
 export type {
   FocusInstance,
   FocusSDKGlobal,
-  WidgetProps,
   Styles,
+  WidgetProps,
 } from '@focus-dashboard/sdk-types'
 
 // ---------------------------------------------------------------------------

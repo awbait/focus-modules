@@ -48,5 +48,5 @@ func postJSON(url string, body any) {
 		log.Printf("focusmodule: POST %s: %v", url, err)
 		return
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 }
