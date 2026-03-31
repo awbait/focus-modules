@@ -1,4 +1,3 @@
-// biome-ignore lint/correctness/noUnusedImports: React is required for classic JSX transform
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { HistoryEntry, Styles, WidgetProps } from './types'
