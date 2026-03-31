@@ -19,6 +19,9 @@ jobs:
 
       - run: bunx biome check
 
+      - name: Validate community-modules.json
+        run: bun run validate:registry
+
   golangci-lint:
     name: golangci-lint (Go)
     runs-on: ubuntu-latest
