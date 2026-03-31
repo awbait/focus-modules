@@ -23,6 +23,7 @@
     "repo": "awbait/focus-modules",
     "download_url": "https://github.com/awbait/focus-modules/releases/download/example-counter/v1.1.0/example-counter.zip",
     "homepage": "https://github.com/awbait/focus-modules",
+    "preview_url": "https://raw.githubusercontent.com/awbait/focus-modules/main/modules/example-counter/preview.png",
     "tags": [
       "example",
       "template",
