@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import type { FocusInstance, Styles, WidgetSettings } from './types'
 import { ReactWidgetElement } from './types'
-import type { FocusInstance, WidgetSettings, Styles } from './types'
 
 function SettingsApp({ focus }: { focus: FocusInstance }) {
   const [step, setStep] = useState(1)
@@ -9,7 +9,10 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
   const [canAdmin, setCanAdmin] = useState(false)
 
   useEffect(() => {
-    focus.can('admin').then(setCanAdmin).catch(() => setCanAdmin(false))
+    focus
+      .can('admin')
+      .then(setCanAdmin)
+      .catch(() => setCanAdmin(false))
 
     focus
       .api<WidgetSettings>('GET', '/settings')
@@ -36,9 +39,12 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
   return (
     <div style={styles.container}>
       <div style={styles.field}>
-        <label style={styles.label}>{focus.t('settings.step')}</label>
+        <label htmlFor="ec-step" style={styles.label}>
+          {focus.t('settings.step')}
+        </label>
         <p style={styles.description}>{focus.t('settings.stepDescription')}</p>
         <input
+          id="ec-step"
           type="number"
           min={1}
           max={100}
@@ -47,7 +53,12 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
           style={styles.input}
         />
       </div>
-      <button onClick={save} style={{ ...styles.saveBtn, ...(!canAdmin ? styles.disabled : {}) }} disabled={!canAdmin}>
+      <button
+        type="button"
+        onClick={save}
+        style={{ ...styles.saveBtn, ...(!canAdmin ? styles.disabled : {}) }}
+        disabled={!canAdmin}
+      >
         {focus.t('settings.save')}
       </button>
       {saved && <span style={styles.savedMsg}>{focus.t('settings.saved')}</span>}

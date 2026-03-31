@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { WidgetProps, HistoryEntry, Styles } from './types'
+import type { HistoryEntry, Styles, WidgetProps } from './types'
 import { ReactWidgetElement } from './types'
 
 function ChartApp({ focus }: WidgetProps) {
@@ -84,6 +84,8 @@ function LineChart({ history }: LineChartProps) {
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       preserveAspectRatio="xMidYMid meet"
       style={{ width: '100%', height: '100%' }}
+      role="img"
+      aria-label="Counter history chart"
     >
       {gridLines.map((g, i) => (
         <g key={i}>

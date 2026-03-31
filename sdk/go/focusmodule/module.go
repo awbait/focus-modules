@@ -75,5 +75,5 @@ func ListenAndServe(handler http.Handler, name string) {
 // HealthHandler responds with 200 OK for the required /health endpoint.
 func HealthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, `{"status":"ok"}`)
+	_, _ = fmt.Fprint(w, `{"status":"ok"}`)
 }

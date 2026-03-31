@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { WidgetProps, ValueResponse, WidgetSettings, Styles } from './types'
+import type { Styles, ValueResponse, WidgetProps, WidgetSettings } from './types'
 import { ReactWidgetElement } from './types'
 
 function CounterApp({ focus }: WidgetProps) {
@@ -9,7 +9,10 @@ function CounterApp({ focus }: WidgetProps) {
   const [canWrite, setCanWrite] = useState(false)
 
   const checkPermission = useCallback(() => {
-    focus.can('write').then(setCanWrite).catch(() => setCanWrite(false))
+    focus
+      .can('write')
+      .then(setCanWrite)
+      .catch(() => setCanWrite(false))
   }, [focus])
 
   useEffect(() => {
@@ -48,19 +51,16 @@ function CounterApp({ focus }: WidgetProps) {
     }
   }, [checkPermission])
 
-  const guardedAction = useCallback(
-    (action: () => Promise<void>) => {
-      return () => {
-        action().catch((err: Error) => {
-          if (err.message.includes('403') || err.message.includes('401')) {
-            setCanWrite(false)
-          }
-          console.error('example-counter:', err)
-        })
-      }
-    },
-    [],
-  )
+  const guardedAction = useCallback((action: () => Promise<void>) => {
+    return () => {
+      action().catch((err: Error) => {
+        if (err.message.includes('403') || err.message.includes('401')) {
+          setCanWrite(false)
+        }
+        console.error('example-counter:', err)
+      })
+    }
+  }, [])
 
   const increment = guardedAction(() =>
     focus.api<ValueResponse>('POST', '/increment', { step }).then((data) => setValue(data.value)),
@@ -78,13 +78,30 @@ function CounterApp({ focus }: WidgetProps) {
     <div style={styles.container}>
       <div style={styles.value}>{value}</div>
       <div style={styles.controls}>
-        <button style={{ ...styles.btn, ...(!canWrite ? styles.disabled : {}) }} onClick={decrement} disabled={!canWrite} title={focus.t('widget.counter.decrement')}>
+        <button
+          type="button"
+          style={{ ...styles.btn, ...(!canWrite ? styles.disabled : {}) }}
+          onClick={decrement}
+          disabled={!canWrite}
+          title={focus.t('widget.counter.decrement')}
+        >
           &minus;
         </button>
-        <button style={{ ...styles.btn, ...styles.resetBtn, ...(!canWrite ? styles.disabled : {}) }} onClick={reset} disabled={!canWrite}>
+        <button
+          type="button"
+          style={{ ...styles.btn, ...styles.resetBtn, ...(!canWrite ? styles.disabled : {}) }}
+          onClick={reset}
+          disabled={!canWrite}
+        >
           {focus.t('widget.counter.reset')}
         </button>
-        <button style={{ ...styles.btn, ...(!canWrite ? styles.disabled : {}) }} onClick={increment} disabled={!canWrite} title={focus.t('widget.counter.increment')}>
+        <button
+          type="button"
+          style={{ ...styles.btn, ...(!canWrite ? styles.disabled : {}) }}
+          onClick={increment}
+          disabled={!canWrite}
+          title={focus.t('widget.counter.increment')}
+        >
           +
         </button>
       </div>

@@ -1,0 +1,12 @@
+{
+  "name": "focus-modules",
+  "private": true,
+  "scripts": {
+    "lint": "biome check",
+    "lint:fix": "biome check --fix"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.8",
+    "lefthook": "^1.11.13"
+  }
+}
