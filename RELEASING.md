@@ -92,8 +92,6 @@ git push origin <tag>
 
 Все заметные изменения документируются в этом файле.
 
-Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
-
 ## [Unreleased]
 
 ## [0.2.0] - 2026-04-15
