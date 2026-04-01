@@ -3,8 +3,9 @@ name: Release module
 on:
   push:
     tags:
-      - '*/v*'           # example-counter/v1.0.1
-      - '!sdk-types/v*'  # handled by publish-sdk-types.yml
+      - '*/v*'                    # example-counter/v1.0.1
+      - '!sdk-types/v*'           # handled by publish-sdk-types.yml
+      - '!sdk/go/focusmodule/v*'  # Go module, no release zip needed
 
 permissions:
   contents: write
