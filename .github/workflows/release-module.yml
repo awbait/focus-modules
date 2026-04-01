@@ -3,7 +3,8 @@ name: Release module
 on:
   push:
     tags:
-      - '*/v*'   # example-counter/v1.0.1
+      - '*/v*'           # example-counter/v1.0.1
+      - '!sdk-types/v*'  # handled by publish-sdk-types.yml
 
 permissions:
   contents: write
@@ -13,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Parse tag
         id: meta
@@ -37,7 +38,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ${{ steps.meta.outputs.module_dir }}/backend/go.mod
 
