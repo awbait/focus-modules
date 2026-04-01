@@ -42,6 +42,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: ${{ steps.meta.outputs.module_dir }}/backend/go.mod
+          cache-dependency-path: ${{ steps.meta.outputs.module_dir }}/backend/go.sum
 
       - name: Build frontend
         working-directory: ${{ steps.meta.outputs.module_dir }}/frontend
@@ -122,11 +123,13 @@ jobs:
           echo "$EOF" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ steps.meta.outputs.module_dir }}/${{ steps.meta.outputs.module_id }}.zip
-          name: ${{ steps.meta.outputs.module_id }} v${{ steps.meta.outputs.version }}
-          body: ${{ steps.notes.outputs.body }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "${{ steps.meta.outputs.module_dir }}/${{ steps.meta.outputs.module_id }}.zip" \
+            --title "${{ steps.meta.outputs.module_id }} v${{ steps.meta.outputs.version }}" \
+            --notes "${{ steps.notes.outputs.body }}"
 
       - name: Update community-modules.json
         run: |
