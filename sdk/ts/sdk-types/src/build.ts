@@ -1,9 +1,13 @@
+#!/usr/bin/env bun
 /**
- * Build script for example-counter module.
+ * focus-build — standard build script for Focus Dashboard modules.
  *
- * React/ReactDOM are marked as external — the host app provides them
- * via an import map, so the browser resolves bare specifiers at runtime.
+ * Bundles widget.js (from src/index.ts) and optionally settings.js
+ * (from src/settings.tsx) into dist/. React is marked as external —
+ * the host app provides it via an import map.
  */
+
+import { existsSync } from 'node:fs'
 
 const external = ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime']
 
@@ -23,8 +27,11 @@ async function bundle(entrypoint: string, outName: string) {
     for (const msg of result.logs) console.error(msg)
     process.exit(1)
   }
-  console.log(`  -> ${outName} built (${(result.outputs[0].size / 1024).toFixed(1)} KB)`)
+  console.log(`  -> ${outName} (${(result.outputs[0].size / 1024).toFixed(1)} KB)`)
 }
 
 await bundle('src/index.ts', 'widget.js')
-await bundle('src/settings.tsx', 'settings.js')
+
+if (existsSync('src/settings.tsx')) {
+  await bundle('src/settings.tsx', 'settings.js')
+}
