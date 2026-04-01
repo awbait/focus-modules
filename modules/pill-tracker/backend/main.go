@@ -81,7 +81,7 @@ func handleListPatients(w http.ResponseWriter, _ *http.Request) {
 		fm.InternalError(w, "list patients", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	patients := []patient{}
 	for rows.Next() {
@@ -218,7 +218,7 @@ func handleListMedications(w http.ResponseWriter, r *http.Request) {
 		fm.InternalError(w, "list medications", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	meds := []medication{}
 	for rows.Next() {
@@ -365,7 +365,7 @@ func handleListPrescriptions(w http.ResponseWriter, r *http.Request) {
 		fm.InternalError(w, "list prescriptions", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	prescriptions := []prescription{}
 	for rows.Next() {
@@ -502,7 +502,7 @@ func handleListSchedules(w http.ResponseWriter, r *http.Request) {
 		fm.InternalError(w, "list schedules", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	schedules := []schedule{}
 	for rows.Next() {
@@ -694,7 +694,7 @@ func handleToday(w http.ResponseWriter, r *http.Request) {
 		fm.InternalError(w, "query today", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	resp := todayResponse{Doses: []doseEntry{}}
 	for rows.Next() {
@@ -816,7 +816,7 @@ func handleHistory(w http.ResponseWriter, r *http.Request) {
 		fm.InternalError(w, "query history", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	entries := []doseEntry{}
 	for rows.Next() {
@@ -861,7 +861,7 @@ func generateDoses() {
 		log.Printf("generate doses: query schedules: %v", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	for rows.Next() {
 		var schedID, schedTime, daysJSON string
