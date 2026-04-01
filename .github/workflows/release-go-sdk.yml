@@ -1,47 +1,32 @@
-name: Publish @focus-dashboard/sdk-types
+name: Release Go SDK
 
 on:
   push:
     tags:
-      - 'sdk-types/v*'
+      - 'sdk/go/focusmodule/v*'
 
 permissions:
   contents: write
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       - name: Parse version
         id: meta
         run: |
-          VERSION="${GITHUB_REF_NAME#sdk-types/v}"
+          VERSION="${GITHUB_REF_NAME#sdk/go/focusmodule/v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Publishing version: $VERSION"
-
-      - name: Set version in package.json
-        working-directory: sdk/ts/sdk-types
-        run: |
-          jq --arg v "${{ steps.meta.outputs.version }}" '.version = $v' package.json > tmp.json && mv tmp.json package.json
-
-      - name: Publish to npm
-        working-directory: sdk/ts/sdk-types
-        run: bun publish --access public
-        env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+          echo "Go SDK v$VERSION"
 
       - name: Extract release notes from CHANGELOG
         id: notes
         run: |
           VERSION="${{ steps.meta.outputs.version }}"
           NOTES=$(awk '/^## \['"$VERSION"'\]/{found=1; next} /^## \[/{if(found) exit} found{print}' \
-            sdk/ts/sdk-types/CHANGELOG.md)
+            sdk/go/focusmodule/CHANGELOG.md)
 
           if [ -z "$NOTES" ]; then
             NOTES="Release v$VERSION"
@@ -57,5 +42,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            --title "sdk-types v${{ steps.meta.outputs.version }}" \
+            --title "Go SDK v${{ steps.meta.outputs.version }}" \
             --notes "${{ steps.notes.outputs.body }}"

@@ -101,12 +101,32 @@ jobs:
           print(f'ZIP ready: {size} KB')
           "
 
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          CHANGELOG="${{ steps.meta.outputs.module_dir }}/CHANGELOG.md"
+
+          NOTES=""
+          if [ -f "$CHANGELOG" ]; then
+            NOTES=$(awk '/^## \['"$VERSION"'\]/{found=1; next} /^## \[/{if(found) exit} found{print}' "$CHANGELOG")
+          fi
+
+          if [ -z "$NOTES" ]; then
+            NOTES="Release v$VERSION"
+          fi
+
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "body<<$EOF" >> "$GITHUB_OUTPUT"
+          echo "$NOTES" >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.meta.outputs.module_dir }}/${{ steps.meta.outputs.module_id }}.zip
           name: ${{ steps.meta.outputs.module_id }} v${{ steps.meta.outputs.version }}
-          generate_release_notes: true
+          body: ${{ steps.notes.outputs.body }}
 
       - name: Update community-modules.json
         run: |
