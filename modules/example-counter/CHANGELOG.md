@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-01
+
 ### Changed
 - Бэкенд использует `fm.Run()` из Go SDK (убран boilerplate)
 - Фронтенд использует `registerWidget`, `usePermission`, `baseStyles` из sdk-types
