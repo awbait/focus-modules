@@ -24,44 +24,59 @@ git log sdk/go/focusmodule/v0.1.0..HEAD -- sdk/go/focusmodule/
 git log example-counter/v1.1.0..HEAD -- modules/example-counter/
 ```
 
+## Общий процесс
+
+Все релизы идут через ветку и PR:
+
+1. Создать ветку `release/<package>/vX.Y.Z` от main
+2. Обновить `CHANGELOG.md` пакета (переименовать `[Unreleased]` → `[X.Y.Z] - YYYY-MM-DD`)
+3. Закоммитить, запушить, создать PR
+4. После мержа PR — поставить тег на merge-коммит в main и запушить тег
+5. CI создаёт GitHub Release с notes из CHANGELOG
+
+```bash
+# 1. Ветка
+git checkout main && git pull origin main
+git checkout -b release/<package>/vX.Y.Z
+
+# 2. Обновить CHANGELOG + (для sdk-types) version в package.json
+# ...
+
+# 3. PR
+git add <files>
+git commit -m "chore(<scope>): release vX.Y.Z"
+git push -u origin release/<package>/vX.Y.Z
+gh pr create --title "release: <package> vX.Y.Z" --body "..."
+
+# 4. После мержа — тег
+git checkout main && git pull origin main
+git tag <tag>
+git push origin <tag>
+```
+
 ## Релиз sdk-types (TypeScript SDK)
 
-1. Обновить `sdk/ts/sdk-types/CHANGELOG.md`:
-   - Переименовать `[Unreleased]` → `[X.Y.Z] - YYYY-MM-DD`
-   - Добавить пустой `[Unreleased]` сверху
-2. Обновить `version` в `sdk/ts/sdk-types/package.json`
-3. Коммит, тег, push:
-   ```bash
-   git add sdk/ts/sdk-types/CHANGELOG.md sdk/ts/sdk-types/package.json
-   git commit -m "chore(sdk-types): release vX.Y.Z"
-   git tag sdk-types/vX.Y.Z
-   git push origin main sdk-types/vX.Y.Z
-   ```
-4. CI публикует в npm и создаёт GitHub Release
+- Путь: `sdk/ts/sdk-types/`
+- Обновить: `CHANGELOG.md` + `package.json` (version)
+- Scope коммита: `sdk-types`
+- Формат тега: `sdk-types/vX.Y.Z`
+- CI: npm publish + GitHub Release
 
 ## Релиз Go SDK
 
-1. Обновить `sdk/go/focusmodule/CHANGELOG.md`
-2. Коммит, тег, push:
-   ```bash
-   git add sdk/go/focusmodule/CHANGELOG.md
-   git commit -m "chore(focusmodule): release vX.Y.Z"
-   git tag sdk/go/focusmodule/vX.Y.Z
-   git push origin main sdk/go/focusmodule/vX.Y.Z
-   ```
-3. CI создаёт GitHub Release. Go proxy подхватывает тег автоматически.
+- Путь: `sdk/go/focusmodule/`
+- Обновить: `CHANGELOG.md`
+- Scope коммита: `focusmodule`
+- Формат тега: `sdk/go/focusmodule/vX.Y.Z`
+- CI: GitHub Release. Go proxy подхватывает тег автоматически.
 
 ## Релиз модуля
 
-1. Обновить `modules/<id>/CHANGELOG.md`
-2. Коммит, тег, push:
-   ```bash
-   git add modules/<id>/CHANGELOG.md
-   git commit -m "chore(<id>): release vX.Y.Z"
-   git tag <id>/vX.Y.Z
-   git push origin main <id>/vX.Y.Z
-   ```
-3. CI собирает ZIP (frontend + backend), создаёт GitHub Release, обновляет `community-modules.json`
+- Путь: `modules/<id>/`
+- Обновить: `CHANGELOG.md`
+- Scope коммита: `<id>`
+- Формат тега: `<id>/vX.Y.Z`
+- CI: ZIP build + GitHub Release + обновление `community-modules.json`
 
 ## Версионирование
 
