@@ -2,16 +2,21 @@
 //
 // A typical module main.go:
 //
+//	var db *sql.DB
+//	var app *focusmodule.App
+//
 //	func main() {
-//	    db := focusmodule.OpenDB()
-//	    defer db.Close()
-//
-//	    mux := http.NewServeMux()
-//	    mux.HandleFunc("GET /health", focusmodule.HealthHandler)
-//	    // ... your routes ...
-//
-//	    focusmodule.ListenAndServe(mux, "My Module")
+//	    focusmodule.Run(focusmodule.Config{
+//	        SettingsTable: "my_settings", // optional
+//	    }, func(a *focusmodule.App) {
+//	        db = a.DB
+//	        app = a
+//	        a.Mux.HandleFunc("GET /data", handleData)
+//	    })
 //	}
+//
+// Run reads manifest.json, opens the database, registers /health and
+// optional settings routes, then starts the HTTP server.
 package focusmodule
 
 import (

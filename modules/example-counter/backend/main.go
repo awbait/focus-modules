@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,25 +10,24 @@ import (
 	fm "github.com/awbait/focus-modules/sdk/go/focusmodule"
 )
 
-var db *sql.DB
+var (
+	db  *sql.DB
+	app *fm.App
+)
 
 func main() {
-	db = fm.OpenDB()
-	defer func() { _ = db.Close() }()
+	fm.Run(fm.Config{
+		SettingsTable: "ec_settings",
+	}, func(a *fm.App) {
+		db = a.DB
+		app = a
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", fm.HealthHandler)
-	mux.HandleFunc("GET /value", handleGetValue)
-	mux.HandleFunc("GET /history", handleGetHistory)
-	mux.HandleFunc("POST /increment", handleIncrement)
-	mux.HandleFunc("POST /decrement", handleDecrement)
-	mux.HandleFunc("POST /reset", handleReset)
-	mux.HandleFunc("GET /settings", handleGetSettings)
-	mux.HandleFunc("PUT /settings", handlePutSettings)
-	mux.HandleFunc("GET /widget-settings/{widgetId}", handleGetWidgetSettings)
-	mux.HandleFunc("PUT /widget-settings/{widgetId}", handlePutWidgetSettings)
-
-	fm.ListenAndServe(mux, "Example Counter")
+		a.Mux.HandleFunc("GET /value", handleGetValue)
+		a.Mux.HandleFunc("GET /history", handleGetHistory)
+		a.Mux.HandleFunc("POST /increment", handleIncrement)
+		a.Mux.HandleFunc("POST /decrement", handleDecrement)
+		a.Mux.HandleFunc("POST /reset", handleReset)
+	})
 }
 
 // --- Handlers ---
@@ -88,7 +86,7 @@ func handleGetHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleIncrement(w http.ResponseWriter, r *http.Request) {
-	if !fm.RequireRole(w, r, "resident") {
+	if !fm.RequireRole(w, r, fm.RoleResident) {
 		return
 	}
 	step := parseStep(r)
@@ -96,7 +94,7 @@ func handleIncrement(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDecrement(w http.ResponseWriter, r *http.Request) {
-	if !fm.RequireRole(w, r, "resident") {
+	if !fm.RequireRole(w, r, fm.RoleResident) {
 		return
 	}
 	step := parseStep(r)
@@ -104,7 +102,7 @@ func handleDecrement(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleReset(w http.ResponseWriter, r *http.Request) {
-	if !fm.RequireRole(w, r, "resident") {
+	if !fm.RequireRole(w, r, fm.RoleResident) {
 		return
 	}
 	var current int
@@ -119,48 +117,8 @@ func handleReset(w http.ResponseWriter, r *http.Request) {
 	if current != 0 {
 		recordHistory(0, -current)
 	}
-	fm.BroadcastEvent("example-counter", "value.changed", map[string]any{"value": 0, "delta": -current})
+	app.Broadcast("value.changed", map[string]any{"value": 0, "delta": -current})
 	fm.JSON(w, map[string]int{"value": 0, "delta": -current})
-}
-
-func handleGetSettings(w http.ResponseWriter, _ *http.Request) {
-	var raw string
-	err := db.QueryRow("SELECT value FROM ec_settings WHERE key = 'global'").Scan(&raw)
-	if err != nil {
-		fm.JSON(w, map[string]int{"step": 1})
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	_, _ = fmt.Fprint(w, raw)
-}
-
-func handlePutSettings(w http.ResponseWriter, r *http.Request) {
-	if !fm.RequireRole(w, r, "owner") {
-		return
-	}
-	var body map[string]any
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		fm.HTTPError(w, http.StatusBadRequest, "invalid json")
-		return
-	}
-	data, _ := json.Marshal(body)
-	_, err := db.Exec(
-		"INSERT INTO ec_settings (key, value) VALUES ('global', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-		string(data),
-	)
-	if err != nil {
-		fm.InternalError(w, "save settings", err)
-		return
-	}
-	fm.JSON(w, map[string]bool{"ok": true})
-}
-
-func handleGetWidgetSettings(w http.ResponseWriter, _ *http.Request) {
-	handleGetSettings(w, nil)
-}
-
-func handlePutWidgetSettings(w http.ResponseWriter, r *http.Request) {
-	handlePutSettings(w, r)
 }
 
 // --- Helpers ---
@@ -187,7 +145,7 @@ func mutateValue(w http.ResponseWriter, delta int) {
 		return
 	}
 	recordHistory(newValue, delta)
-	fm.BroadcastEvent("example-counter", "value.changed", map[string]any{"value": newValue, "delta": delta})
+	app.Broadcast("value.changed", map[string]any{"value": newValue, "delta": delta})
 	fm.JSON(w, map[string]int{"value": newValue, "delta": delta})
 }
 
