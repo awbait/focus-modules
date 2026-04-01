@@ -1,0 +1,84 @@
+{
+  "widget": {
+    "today": {
+      "title": "Today's Doses",
+      "noPatients": "No patients yet",
+      "noDoses": "No doses scheduled",
+      "allDone": "All done!",
+      "progress": "{{given}}/{{total}}",
+      "give": "Give",
+      "skip": "Skip",
+      "given": "Given",
+      "skipped": "Skipped",
+      "overdue": "Overdue",
+      "pending": "Due",
+      "confirmGive": "Mark as given?",
+      "confirmSkip": "Skip this dose?",
+      "skipReason": "Reason (optional)",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "history": "History",
+      "givenBy": "by {{name}}"
+    }
+  },
+  "settings": {
+    "title": "Pill Tracker",
+    "patients": "Patients",
+    "medications": "Medications",
+    "prescriptions": "Prescriptions",
+    "schedules": "Schedules",
+    "addPatient": "Add Patient",
+    "addMedication": "Add Medication",
+    "addPrescription": "Add Prescription",
+    "addSchedule": "Add Schedule",
+    "name": "Name",
+    "type": "Type",
+    "avatar": "Avatar",
+    "dosage": "Dosage",
+    "form": "Form",
+    "targetType": "Target",
+    "notes": "Notes",
+    "status": "Status",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "time": "Time",
+    "days": "Days",
+    "save": "Save",
+    "saved": "Saved",
+    "delete": "Delete",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete?",
+    "noItems": "No items",
+    "active": "Active",
+    "paused": "Paused",
+    "completed": "Completed",
+    "indefinite": "Indefinite",
+    "everyday": "Every day",
+    "linkedUser": "Linked User"
+  },
+  "types": {
+    "human": "Human",
+    "animal": "Animal"
+  },
+  "targetTypes": {
+    "human": "Human",
+    "animal": "Animal",
+    "universal": "Universal"
+  },
+  "forms": {
+    "tablet": "Tablet",
+    "drops": "Drops",
+    "injection": "Injection",
+    "ointment": "Ointment"
+  },
+  "days": {
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun"
+  }
+}
