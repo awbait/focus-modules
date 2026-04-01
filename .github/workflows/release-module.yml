@@ -46,7 +46,7 @@ jobs:
       - name: Build frontend
         working-directory: ${{ steps.meta.outputs.module_dir }}/frontend
         run: |
-          bun install
+          bun install --frozen-lockfile
           bun run build
 
       - name: Build backend (linux/amd64)
