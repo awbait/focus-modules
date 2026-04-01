@@ -9,7 +9,7 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "declaration": false,
-    "types": ["@focus-dashboard/sdk-types/globals"]
+    "types": ["@focus-dashboard/sdk-types/globals", "react", "react-dom"]
   },
   "include": ["src"]
 }
