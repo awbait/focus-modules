@@ -2,8 +2,6 @@
 
 Все заметные изменения в Go SDK (`focusmodule`) документируются в этом файле.
 
-Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
-
 ## [Unreleased]
 
 ## [0.1.0] - 2026-04-01

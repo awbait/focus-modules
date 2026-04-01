@@ -2,8 +2,6 @@
 
 Все заметные изменения в `@focus-dashboard/sdk-types` документируются в этом файле.
 
-Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
-
 ## [Unreleased]
 
 ## [0.7.0] - 2026-04-01
