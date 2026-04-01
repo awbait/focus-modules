@@ -22,15 +22,27 @@ jobs:
       - name: Validate community-modules.json
         run: bun run validate:registry
 
+  discover-go:
+    name: Discover Go modules
+    runs-on: ubuntu-latest
+    outputs:
+      directories: ${{ steps.find.outputs.directories }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Find Go modules
+        id: find
+        run: |
+          dirs=$(find . -name 'go.mod' -not -path '*/vendor/*' -not -path '*/node_modules/*' -exec dirname {} \; | sed 's|^\./||' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "directories=$dirs" >> "$GITHUB_OUTPUT"
+
   golangci-lint:
     name: golangci-lint (Go)
+    needs: discover-go
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        directory:
-          - sdk/go/focusmodule
-          - modules/example-counter/backend
-          - modules/pill-tracker/backend
+        directory: ${{ fromJson(needs.discover-go.outputs.directories) }}
     steps:
       - uses: actions/checkout@v6
 
