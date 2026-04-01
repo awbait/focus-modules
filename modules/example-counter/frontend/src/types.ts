@@ -1,27 +1,9 @@
-import type { Root } from 'react-dom/client'
-
 export type {
   FocusInstance,
   FocusSDKGlobal,
   Styles,
   WidgetProps,
 } from '@focus-dashboard/sdk-types'
-
-// ---------------------------------------------------------------------------
-// ReactWidgetElement — base class for custom element wrappers.
-// Will move to @focus-dashboard/sdk-types in v0.4.0.
-// ---------------------------------------------------------------------------
-
-export class ReactWidgetElement extends HTMLElement {
-  _root: Root | null = null
-
-  disconnectedCallback() {
-    if (this._root) {
-      this._root.unmount()
-      this._root = null
-    }
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Module-specific types

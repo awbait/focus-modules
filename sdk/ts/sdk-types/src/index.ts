@@ -1,4 +1,6 @@
 import type { CSSProperties } from 'react'
+import { createElement, useCallback, useEffect, useState } from 'react'
+import { createRoot } from 'react-dom/client'
 
 // ---------------------------------------------------------------------------
 // Core SDK interfaces
@@ -92,19 +94,8 @@ export type Styles = Record<string, CSSProperties>
 /**
  * Base class for React-powered custom elements.
  *
- * Handles React root lifecycle (unmount on disconnect). Subclass and
- * implement `connectedCallback()` to create the root and render:
- *
- * ```ts
- * class MyWidget extends ReactWidgetElement {
- *   connectedCallback() {
- *     const focus = window.FocusSDK.create(this)
- *     this._root = createRoot(this)
- *     this._root.render(<App focus={focus} />)
- *   }
- * }
- * customElements.define('my-module-widget', MyWidget)
- * ```
+ * Handles React root lifecycle (unmount on disconnect).
+ * Prefer using {@link registerWidget} instead of subclassing directly.
  */
 export class ReactWidgetElement extends HTMLElement {
   _root: import('react-dom/client').Root | null = null
@@ -116,3 +107,89 @@ export class ReactWidgetElement extends HTMLElement {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// registerWidget — one-line widget registration
+// ---------------------------------------------------------------------------
+
+/**
+ * Register a React component as a custom element widget.
+ *
+ * Handles FocusSDK initialization, React root creation, and cleanup.
+ *
+ * ```ts
+ * registerWidget('my-module-counter', CounterApp)
+ * registerWidget('my-module-settings', SettingsApp)
+ * ```
+ */
+export function registerWidget(tagName: string, Component: (props: WidgetProps) => any) {
+  const Cls = class extends ReactWidgetElement {
+    connectedCallback() {
+      const focus = (window as any).FocusSDK.create(this)
+      this._root = createRoot(this)
+      this._root.render(createElement(Component, { focus }))
+    }
+  }
+  customElements.define(tagName, Cls)
+}
+
+// ---------------------------------------------------------------------------
+// usePermission — reactive permission check hook
+// ---------------------------------------------------------------------------
+
+/**
+ * Reactive permission check. Returns `true` if the current user has
+ * the required permission level. Automatically resets on logout
+ * (`auth:unauthorized` event) and re-checks on window focus.
+ *
+ * ```tsx
+ * const canWrite = usePermission(focus, 'write')
+ * const canAdmin = usePermission(focus, 'admin')
+ * ```
+ */
+export function usePermission(focus: FocusInstance, action: FocusAction): boolean {
+  const [allowed, setAllowed] = useState(false)
+
+  const check = useCallback(() => {
+    focus
+      .can(action)
+      .then(setAllowed)
+      .catch(() => setAllowed(false))
+  }, [focus, action])
+
+  useEffect(() => {
+    check()
+  }, [check])
+
+  useEffect(() => {
+    const onLogout = () => setAllowed(false)
+    const onFocus = () => check()
+    window.addEventListener('auth:unauthorized', onLogout)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      window.removeEventListener('auth:unauthorized', onLogout)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [check])
+
+  return allowed
+}
+
+// ---------------------------------------------------------------------------
+// baseStyles — shared widget styles
+// ---------------------------------------------------------------------------
+
+/** Base styles shared across all widgets. */
+export const baseStyles = {
+  /** Common widget container: font family and text color. */
+  widget: {
+    fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)',
+    color: 'var(--foreground)',
+  },
+  /** Disabled state for interactive elements. */
+  disabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+    pointerEvents: 'none' as const,
+  },
+} satisfies Record<string, CSSProperties>

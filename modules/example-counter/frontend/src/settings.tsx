@@ -1,29 +1,20 @@
+import type { FocusInstance } from '@focus-dashboard/sdk-types'
+import { baseStyles, registerWidget, usePermission } from '@focus-dashboard/sdk-types'
 import React, { useEffect, useState } from 'react'
-import { createRoot } from 'react-dom/client'
-import type { FocusInstance, Styles, WidgetSettings } from './types'
-import { ReactWidgetElement } from './types'
+import type { Styles, WidgetSettings } from './types'
 
 function SettingsApp({ focus }: { focus: FocusInstance }) {
   const [step, setStep] = useState(1)
   const [saved, setSaved] = useState(false)
-  const [canAdmin, setCanAdmin] = useState(false)
+  const canAdmin = usePermission(focus, 'admin')
 
   useEffect(() => {
-    focus
-      .can('admin')
-      .then(setCanAdmin)
-      .catch(() => setCanAdmin(false))
-
     focus
       .api<WidgetSettings>('GET', '/settings')
       .then((s) => {
         if (s?.step > 0) setStep(s.step)
       })
       .catch(() => {})
-
-    const onLogout = () => setCanAdmin(false)
-    window.addEventListener('auth:unauthorized', onLogout)
-    return () => window.removeEventListener('auth:unauthorized', onLogout)
   }, [focus])
 
   const save = () => {
@@ -68,12 +59,11 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
 
 const styles: Styles = {
   container: {
+    ...baseStyles.widget,
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
     padding: '8px 0',
-    fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)',
-    color: 'var(--foreground)',
   },
   field: {
     display: 'flex',
@@ -121,19 +111,7 @@ const styles: Styles = {
     fontSize: '0.75rem',
     color: 'var(--primary)',
   },
-  disabled: {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-    pointerEvents: 'none' as const,
-  },
+  disabled: baseStyles.disabled,
 }
 
-class ExampleCounterSettings extends ReactWidgetElement {
-  connectedCallback() {
-    const focus = window.FocusSDK.create(this)
-    this._root = createRoot(this)
-    this._root.render(<SettingsApp focus={focus} />)
-  }
-}
-
-customElements.define('example-counter-settings', ExampleCounterSettings)
+registerWidget('example-counter-settings', SettingsApp)

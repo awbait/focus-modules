@@ -1,23 +1,13 @@
+import { baseStyles, registerWidget, usePermission } from '@focus-dashboard/sdk-types'
 import React, { useCallback, useEffect, useState } from 'react'
-import { createRoot } from 'react-dom/client'
 import type { Styles, ValueResponse, WidgetProps, WidgetSettings } from './types'
-import { ReactWidgetElement } from './types'
 
 function CounterApp({ focus }: WidgetProps) {
   const [value, setValue] = useState(0)
   const [step, setStep] = useState(1)
-  const [canWrite, setCanWrite] = useState(false)
-
-  const checkPermission = useCallback(() => {
-    focus
-      .can('write')
-      .then(setCanWrite)
-      .catch(() => setCanWrite(false))
-  }, [focus])
+  const canWrite = usePermission(focus, 'write')
 
   useEffect(() => {
-    checkPermission()
-
     focus
       .getSettings<WidgetSettings>()
       .then((s) => {
@@ -37,26 +27,11 @@ function CounterApp({ focus }: WidgetProps) {
 
     focus.ready()
     return unsub
-  }, [focus, checkPermission])
-
-  // Instant disable on logout; re-check on window focus (other tabs).
-  useEffect(() => {
-    const onLogout = () => setCanWrite(false)
-    const onFocus = () => checkPermission()
-    window.addEventListener('auth:unauthorized', onLogout)
-    window.addEventListener('focus', onFocus)
-    return () => {
-      window.removeEventListener('auth:unauthorized', onLogout)
-      window.removeEventListener('focus', onFocus)
-    }
-  }, [checkPermission])
+  }, [focus])
 
   const guardedAction = useCallback((action: () => Promise<void>) => {
     return () => {
       action().catch((err: Error) => {
-        if (err.message.includes('403') || err.message.includes('401')) {
-          setCanWrite(false)
-        }
         console.error('example-counter:', err)
       })
     }
@@ -111,14 +86,13 @@ function CounterApp({ focus }: WidgetProps) {
 
 const styles: Styles = {
   container: {
+    ...baseStyles.widget,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
     gap: '12px',
-    fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)',
-    color: 'var(--foreground)',
   },
   value: {
     fontSize: '3rem',
@@ -156,19 +130,7 @@ const styles: Styles = {
     color: 'var(--primary-foreground)',
     border: '1px solid transparent',
   },
-  disabled: {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-    pointerEvents: 'none' as const,
-  },
+  disabled: baseStyles.disabled,
 }
 
-class ExampleCounterCounterWidget extends ReactWidgetElement {
-  connectedCallback() {
-    const focus = window.FocusSDK.create(this)
-    this._root = createRoot(this)
-    this._root.render(<CounterApp focus={focus} />)
-  }
-}
-
-customElements.define('example-counter-counter-widget', ExampleCounterCounterWidget)
+registerWidget('example-counter-counter-widget', CounterApp)
