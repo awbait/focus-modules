@@ -77,3 +77,30 @@ bash build.sh        # → my-module.zip
 
 Модуль появляется в списке сразу, без перезапуска.
 Чтобы добавить виджет на доску, войдите в режим редактирования и нажмите **Добавить виджет**.
+
+---
+
+## SDK
+
+| Пакет | Язык | Установка |
+|-------|------|-----------|
+| [@focus-dashboard/sdk-types](sdk/ts/sdk-types/) | TypeScript | `bun add -d @focus-dashboard/sdk-types` |
+| [focusmodule](sdk/go/focusmodule/) | Go | `go get github.com/awbait/focus-modules/sdk/go/focusmodule` |
+
+**TypeScript SDK** — типы (`FocusInstance`, `WidgetProps`), хелперы (`registerWidget`, `usePermission`, `baseStyles`) и CLI-команда `focus-build` для сборки модулей.
+
+**Go SDK** — `fm.Run()` скрывает boilerplate (DB, mux, health, settings, server). Модуль описывает только бизнес-логику.
+
+---
+
+## Релизы
+
+Каждый пакет имеет свой `CHANGELOG.md` в формате [Keep a Changelog](https://keepachangelog.com/).
+
+| Пакет | Формат тега | Что делает CI |
+|-------|-------------|---------------|
+| `sdk/ts/sdk-types` | `sdk-types/vX.Y.Z` | npm publish + GitHub Release |
+| `sdk/go/focusmodule` | `sdk/go/focusmodule/vX.Y.Z` | GitHub Release |
+| `modules/<id>` | `<id>/vX.Y.Z` | ZIP build + GitHub Release |
+
+Подробный процесс — см. [RELEASING.md](RELEASING.md).
