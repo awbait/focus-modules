@@ -30,6 +30,7 @@ jobs:
         directory:
           - sdk/go/focusmodule
           - modules/example-counter/backend
+          - modules/pill-tracker/backend
     steps:
       - uses: actions/checkout@v6
 
@@ -41,3 +42,16 @@ jobs:
         with:
           version: v2.11
           working-directory: ${{ matrix.directory }}
+
+  LintExpected:
+    name: LintExpected
+    if: always()
+    needs: [biome, golangci-lint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.biome.result }}" != "success" || "${{ needs.golangci-lint.result }}" != "success" ]]; then
+            echo "One or more lint jobs failed"
+            exit 1
+          fi
