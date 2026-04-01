@@ -1,10 +1,6 @@
 {
   "name": "focus-modules",
   "private": true,
-  "workspaces": [
-    "sdk/ts/*",
-    "modules/*/frontend"
-  ],
   "scripts": {
     "lint": "biome check",
     "lint:fix": "biome check --fix",

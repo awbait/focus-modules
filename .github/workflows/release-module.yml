@@ -46,7 +46,6 @@ jobs:
       - name: Build frontend
         working-directory: ${{ steps.meta.outputs.module_dir }}/frontend
         run: |
-          rm -f ../../../package.json ../../../bun.lock
           bun install
           bun run build
 
