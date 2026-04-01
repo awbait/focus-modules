@@ -29,5 +29,20 @@
       "template",
       "counter"
     ]
+  },
+  {
+    "id": "pill-tracker",
+    "name": "Pill Tracker",
+    "author": "awbait",
+    "description": "Track medication intake for humans and animals: patients, prescriptions, schedules, dose logging",
+    "version": "1.0.0",
+    "repo": "awbait/focus-modules",
+    "download_url": "https://github.com/awbait/focus-modules/releases/download/pill-tracker/v1.0.0/pill-tracker.zip",
+    "homepage": "https://github.com/awbait/focus-modules",
+    "tags": [
+      "health",
+      "medication",
+      "tracker"
+    ]
   }
 ]
