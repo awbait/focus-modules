@@ -2,8 +2,6 @@
 
 Все заметные изменения в модуле `example-counter` документируются в этом файле.
 
-Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
-
 ## [Unreleased]
 
 ### Changed
