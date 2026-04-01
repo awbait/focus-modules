@@ -2,11 +2,11 @@
   "name": "example-counter-frontend",
   "private": true,
   "scripts": {
-    "build": "bun -e \"import '@focus-dashboard/sdk-types/build'\"",
+    "build": "focus-build",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@focus-dashboard/sdk-types": "^0.6.0",
+    "@focus-dashboard/sdk-types": "^0.7.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.7.0"
