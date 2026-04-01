@@ -1,7 +1,6 @@
+import { baseStyles, registerWidget } from '@focus-dashboard/sdk-types'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { createRoot } from 'react-dom/client'
 import type { HistoryEntry, Styles, WidgetProps } from './types'
-import { ReactWidgetElement } from './types'
 
 function ChartApp({ focus }: WidgetProps) {
   const [history, setHistory] = useState<HistoryEntry[]>([])
@@ -126,11 +125,10 @@ function LineChart({ history }: LineChartProps) {
 
 const styles: Styles = {
   container: {
+    ...baseStyles.widget,
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
-    fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)',
-    color: 'var(--foreground)',
   },
   header: {
     fontSize: '0.875rem',
@@ -153,12 +151,4 @@ const styles: Styles = {
   },
 }
 
-class ExampleCounterChartWidget extends ReactWidgetElement {
-  connectedCallback() {
-    const focus = window.FocusSDK.create(this)
-    this._root = createRoot(this)
-    this._root.render(<ChartApp focus={focus} />)
-  }
-}
-
-customElements.define('example-counter-chart-widget', ExampleCounterChartWidget)
+registerWidget('example-counter-chart-widget', ChartApp)
