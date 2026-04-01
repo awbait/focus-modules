@@ -13,7 +13,7 @@
     "modules/example-counter/frontend": {
       "name": "example-counter-frontend",
       "devDependencies": {
-        "@focus-dashboard/sdk-types": "workspace:*",
+        "@focus-dashboard/sdk-types": "^0.6.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
         "typescript": "^5.7.0",
@@ -21,7 +21,7 @@
     },
     "sdk/ts/sdk-types": {
       "name": "@focus-dashboard/sdk-types",
-      "version": "0.4.0",
+      "version": "0.6.0",
       "devDependencies": {
         "@types/react": ">=18",
         "@types/react-dom": ">=18",
