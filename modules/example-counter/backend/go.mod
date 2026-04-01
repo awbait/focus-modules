@@ -2,7 +2,7 @@ module example-counter
 
 go 1.23.0
 
-require github.com/awbait/focus-modules/sdk/go/focusmodule v0.0.0
+require github.com/awbait/focus-modules/sdk/go/focusmodule v0.1.0
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -17,5 +17,3 @@ require (
 	modernc.org/memory v1.9.1 // indirect
 	modernc.org/sqlite v1.37.0 // indirect
 )
-
-replace github.com/awbait/focus-modules/sdk/go/focusmodule => ../../../sdk/go/focusmodule
