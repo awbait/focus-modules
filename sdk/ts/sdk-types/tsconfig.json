@@ -9,8 +9,8 @@
     "skipLibCheck": true,
     "declaration": true,
     "declarationMap": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": ["bun", "react", "react-dom"]
   },
-  "include": ["src"],
-  "exclude": ["src/build.ts"]
+  "include": ["src"]
 }
