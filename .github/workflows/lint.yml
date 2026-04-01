@@ -25,19 +25,21 @@ jobs:
   golangci-lint:
     name: golangci-lint (Go)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        directory:
-          - sdk/go/focusmodule
-          - modules/example-counter/backend
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/setup-go@v6
         with:
-          go-version-file: ${{ matrix.directory }}/go.mod
+          go-version: stable
 
-      - uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.11
-          working-directory: ${{ matrix.directory }}
+      - name: Install golangci-lint
+        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v2.11.4
+
+      - name: Lint all Go modules
+        run: |
+          status=0
+          for dir in $(find . -name 'go.mod' -not -path '*/vendor/*' -not -path '*/node_modules/*' -exec dirname {} \;); do
+            echo "==> Linting $dir"
+            (cd "$dir" && golangci-lint run) || status=1
+          done
+          exit $status

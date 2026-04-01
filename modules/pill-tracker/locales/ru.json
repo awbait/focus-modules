@@ -1,0 +1,84 @@
+{
+  "widget": {
+    "today": {
+      "title": "Дозы на сегодня",
+      "noPatients": "Нет пациентов",
+      "noDoses": "Нет доз на сегодня",
+      "allDone": "Всё принято!",
+      "progress": "{{given}}/{{total}}",
+      "give": "Принять",
+      "skip": "Пропустить",
+      "given": "Принято",
+      "skipped": "Пропущено",
+      "overdue": "Просрочено",
+      "pending": "Сейчас",
+      "confirmGive": "Отметить как принято?",
+      "confirmSkip": "Пропустить дозу?",
+      "skipReason": "Причина (необязательно)",
+      "cancel": "Отмена",
+      "confirm": "Подтвердить",
+      "history": "История",
+      "givenBy": "выдал {{name}}"
+    }
+  },
+  "settings": {
+    "title": "Трекер лекарств",
+    "patients": "Пациенты",
+    "medications": "Медикаменты",
+    "prescriptions": "Назначения",
+    "schedules": "Расписания",
+    "addPatient": "Добавить пациента",
+    "addMedication": "Добавить медикамент",
+    "addPrescription": "Добавить назначение",
+    "addSchedule": "Добавить расписание",
+    "name": "Название",
+    "type": "Тип",
+    "avatar": "Аватар",
+    "dosage": "Дозировка",
+    "form": "Форма",
+    "targetType": "Для кого",
+    "notes": "Заметки",
+    "status": "Статус",
+    "startDate": "Дата начала",
+    "endDate": "Дата окончания",
+    "time": "Время",
+    "days": "Дни",
+    "save": "Сохранить",
+    "saved": "Сохранено",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "cancel": "Отмена",
+    "confirmDelete": "Удалить?",
+    "noItems": "Пусто",
+    "active": "Активно",
+    "paused": "Пауза",
+    "completed": "Завершено",
+    "indefinite": "Бессрочно",
+    "everyday": "Каждый день",
+    "linkedUser": "Связанный пользователь"
+  },
+  "types": {
+    "human": "Человек",
+    "animal": "Животное"
+  },
+  "targetTypes": {
+    "human": "Для людей",
+    "animal": "Для животных",
+    "universal": "Универсальный"
+  },
+  "forms": {
+    "tablet": "Таблетка",
+    "drops": "Капли",
+    "injection": "Инъекция",
+    "ointment": "Мазь"
+  },
+  "days": {
+    "mon": "Пн",
+    "tue": "Вт",
+    "wed": "Ср",
+    "thu": "Чт",
+    "fri": "Пт",
+    "sat": "Сб",
+    "sun": "Вс"
+  }
+}

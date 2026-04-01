@@ -1,0 +1,52 @@
+{
+  "id": "pill-tracker",
+  "name": "Pill Tracker",
+  "description": "Track medication intake for humans and animals: patients, prescriptions, schedules, dose logging",
+  "version": "1.0.0",
+  "author": "awbait",
+  "widgets": [
+    {
+      "id": "today",
+      "name": "Today",
+      "description": "Today's doses with progress tracking",
+      "min": "2x2",
+      "max": "4x3",
+      "default": "2x2"
+    }
+  ],
+  "events": [
+    {
+      "type": "pill-tracker.dose.given",
+      "description": "Dose marked as given",
+      "payload": {
+        "dose_id": "string",
+        "patient_id": "string",
+        "medication_name": "string"
+      }
+    },
+    {
+      "type": "pill-tracker.dose.skipped",
+      "description": "Dose skipped",
+      "payload": {
+        "dose_id": "string",
+        "reason": "string"
+      }
+    },
+    {
+      "type": "pill-tracker.dose.overdue",
+      "description": "Dose became overdue",
+      "payload": {
+        "dose_id": "string",
+        "patient_id": "string"
+      }
+    },
+    {
+      "type": "pill-tracker.dose.reminder",
+      "description": "Upcoming dose reminder",
+      "payload": {
+        "dose_id": "string",
+        "patient_id": "string"
+      }
+    }
+  ]
+}
