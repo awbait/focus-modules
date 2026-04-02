@@ -1,7 +1,32 @@
-import type { FocusInstance } from '@focus-dashboard/sdk-types'
+import type { FocusInstance, FocusPublicUser } from '@focus-dashboard/sdk-types'
 import { baseStyles, registerWidget, usePermission } from '@focus-dashboard/sdk-types'
 import React, { useCallback, useEffect, useState } from 'react'
 import type { Medication, Patient, Prescription, Schedule, Styles } from './types'
+
+// ---------------------------------------------------------------------------
+// Emoji presets for avatar picker
+// ---------------------------------------------------------------------------
+
+const HUMAN_EMOJIS = [
+  '\u{1F9D1}',
+  '\u{1F468}',
+  '\u{1F469}',
+  '\u{1F474}',
+  '\u{1F475}',
+  '\u{1F466}',
+  '\u{1F467}',
+  '\u{1F476}',
+]
+const ANIMAL_EMOJIS = [
+  '\u{1F415}',
+  '\u{1F408}',
+  '\u{1F439}',
+  '\u{1F430}',
+  '\u{1F426}',
+  '\u{1F40D}',
+  '\u{1F420}',
+  '\u{1F422}',
+]
 
 // ---------------------------------------------------------------------------
 // Main settings component
@@ -16,6 +41,7 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null)
   const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [platformUsers, setPlatformUsers] = useState<FocusPublicUser[]>([])
 
   // Forms
   const [showAddPatient, setShowAddPatient] = useState(false)
@@ -60,7 +86,11 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
   useEffect(() => {
     loadPatients()
     loadMedications()
-  }, [loadPatients, loadMedications])
+    focus
+      .getUsers()
+      .then(setPlatformUsers)
+      .catch(() => {})
+  }, [loadPatients, loadMedications, focus])
 
   useEffect(() => {
     if (selectedPatient) loadPrescriptions(selectedPatient.id)
@@ -71,6 +101,12 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
     if (selectedPrescription) loadSchedules(selectedPrescription.id)
     else setSchedules([])
   }, [selectedPrescription, loadSchedules])
+
+  const confirmDelete = (action: () => void) => {
+    if (window.confirm(focus.t('settings.confirmDelete'))) {
+      action()
+    }
+  }
 
   return (
     <div style={styles.root}>
@@ -89,10 +125,12 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
             onDelete={
               canAdmin
                 ? () => {
-                    focus
-                      .api('DELETE', `/patients/${p.id}`)
-                      .then(loadPatients)
-                      .catch(() => {})
+                    confirmDelete(() => {
+                      focus
+                        .api('DELETE', `/patients/${p.id}`)
+                        .then(loadPatients)
+                        .catch(() => {})
+                    })
                   }
                 : undefined
             }
@@ -107,6 +145,7 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
         {showAddPatient && (
           <AddPatientForm
             focus={focus}
+            platformUsers={platformUsers}
             onDone={() => {
               setShowAddPatient(false)
               loadPatients()
@@ -121,14 +160,16 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
           <ListItem
             key={m.id}
             label={m.name}
-            sublabel={`${focus.t(`forms.${m.form}`)} · ${focus.t(`targetTypes.${m.target_type}`)}`}
+            sublabel={`${focus.t(`forms.${m.form}`)} \u00B7 ${focus.t(`targetTypes.${m.target_type}`)}`}
             onDelete={
               canAdmin
                 ? () => {
-                    focus
-                      .api('DELETE', `/medications/${m.id}`)
-                      .then(loadMedications)
-                      .catch(() => {})
+                    confirmDelete(() => {
+                      focus
+                        .api('DELETE', `/medications/${m.id}`)
+                        .then(loadMedications)
+                        .catch(() => {})
+                    })
                   }
                 : undefined
             }
@@ -154,7 +195,7 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
       {/* ---------- Prescriptions ---------- */}
       <Section title={focus.t('settings.prescriptions')}>
         {!selectedPatient ? (
-          <EmptyHint text={focus.t('settings.noItems')} />
+          <EmptyHint text={focus.t('settings.selectPatient')} />
         ) : (
           <>
             {prescriptions.map((pr) => {
@@ -163,16 +204,18 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
                 <ListItem
                   key={pr.id}
                   label={med?.name ?? pr.medication_id}
-                  sublabel={`${pr.dosage} · ${focus.t(`settings.${pr.status}`)}`}
+                  sublabel={`${pr.dosage} \u00B7 ${focus.t(`settings.${pr.status}`)}`}
                   selected={selectedPrescription?.id === pr.id}
                   onClick={() => setSelectedPrescription(pr)}
                   onDelete={
                     canAdmin
                       ? () => {
-                          focus
-                            .api('DELETE', `/prescriptions/${pr.id}`)
-                            .then(() => loadPrescriptions(selectedPatient.id))
-                            .catch(() => {})
+                          confirmDelete(() => {
+                            focus
+                              .api('DELETE', `/prescriptions/${pr.id}`)
+                              .then(() => loadPrescriptions(selectedPatient.id))
+                              .catch(() => {})
+                          })
                         }
                       : undefined
                   }
@@ -204,21 +247,27 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
       {/* ---------- Schedules ---------- */}
       <Section title={focus.t('settings.schedules')}>
         {!selectedPrescription ? (
-          <EmptyHint text={focus.t('settings.noItems')} />
+          <EmptyHint text={focus.t('settings.selectPrescription')} />
         ) : (
           <>
             {schedules.map((s) => (
               <ListItem
                 key={s.id}
                 label={s.time}
-                sublabel={s.days.length === 0 ? focus.t('settings.everyday') : s.days.join(', ')}
+                sublabel={
+                  s.days.length === 0
+                    ? focus.t('settings.everyday')
+                    : s.days.map((d) => focus.t(`days.${d}`)).join(', ')
+                }
                 onDelete={
                   canAdmin
                     ? () => {
-                        focus
-                          .api('DELETE', `/schedules/${s.id}`)
-                          .then(() => loadSchedules(selectedPrescription.id))
-                          .catch(() => {})
+                        confirmDelete(() => {
+                          focus
+                            .api('DELETE', `/schedules/${s.id}`)
+                            .then(() => loadSchedules(selectedPrescription.id))
+                            .catch(() => {})
+                        })
                       }
                     : undefined
                 }
@@ -288,7 +337,7 @@ function ListItem({
             onDelete()
           }}
         >
-          ✕
+          \u2715
         </button>
       )}
     </>
@@ -327,44 +376,160 @@ function EmptyHint({ text }: { text: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// Emoji Picker
+// ---------------------------------------------------------------------------
+
+function EmojiPicker({
+  value,
+  onChange,
+  type,
+}: {
+  value: string
+  onChange: (v: string) => void
+  type: 'human' | 'animal'
+}) {
+  const emojis = type === 'human' ? HUMAN_EMOJIS : ANIMAL_EMOJIS
+
+  return (
+    <div style={styles.emojiPicker}>
+      <div style={styles.emojiGrid}>
+        {emojis.map((e) => (
+          <button
+            key={e}
+            type="button"
+            style={{
+              ...styles.emojiBtn,
+              ...(value === e ? styles.emojiBtnActive : {}),
+            }}
+            onClick={() => onChange(e)}
+          >
+            {e}
+          </button>
+        ))}
+      </div>
+      <input
+        style={{ ...styles.input, width: '60px', textAlign: 'center' }}
+        placeholder="\u{1F4DD}"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        maxLength={4}
+      />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Validation helper
+// ---------------------------------------------------------------------------
+
+function FieldError({ message }: { message: string }) {
+  return <div style={styles.fieldError}>{message}</div>
+}
+
+// ---------------------------------------------------------------------------
 // Add forms
 // ---------------------------------------------------------------------------
 
-function AddPatientForm({ focus, onDone }: { focus: FocusInstance; onDone: () => void }) {
+function AddPatientForm({
+  focus,
+  platformUsers,
+  onDone,
+}: {
+  focus: FocusInstance
+  platformUsers: FocusPublicUser[]
+  onDone: () => void
+}) {
   const [name, setName] = useState('')
   const [type, setType] = useState<'human' | 'animal'>('human')
   const [avatar, setAvatar] = useState('')
+  const [linkedUserId, setLinkedUserId] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleLinkUser = (userId: string) => {
+    setLinkedUserId(userId)
+    if (userId) {
+      const user = platformUsers.find((u) => u.id === userId)
+      if (user) {
+        setName(user.name)
+        if (user.avatar) setAvatar(user.avatar)
+      }
+    }
+  }
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {}
+    if (!name.trim()) errs.name = focus.t('settings.required')
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
 
   const submit = () => {
-    if (!name) return
+    if (!validate()) return
     focus
-      .api('POST', '/patients', { name, type, avatar })
+      .api('POST', '/patients', {
+        name: name.trim(),
+        type,
+        avatar,
+        linked_user_id: linkedUserId || null,
+      })
       .then(onDone)
       .catch((err) => console.error('pill-tracker: add patient', err))
   }
 
   return (
     <div style={styles.form}>
-      <input
-        style={styles.input}
-        placeholder={focus.t('settings.name')}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
+      <span style={styles.fieldLabel}>{focus.t('settings.type')}</span>
       <select
         style={styles.input}
         value={type}
-        onChange={(e) => setType(e.target.value as 'human' | 'animal')}
+        onChange={(e) => {
+          const newType = e.target.value as 'human' | 'animal'
+          setType(newType)
+          setAvatar('')
+          if (newType === 'animal') setLinkedUserId('')
+        }}
       >
         <option value="human">{focus.t('types.human')}</option>
         <option value="animal">{focus.t('types.animal')}</option>
       </select>
+
+      {type === 'human' && platformUsers.length > 0 && (
+        <>
+          <span style={styles.fieldLabel}>{focus.t('settings.linkedUser')}</span>
+          <select
+            style={styles.input}
+            value={linkedUserId}
+            onChange={(e) => handleLinkUser(e.target.value)}
+          >
+            <option value="">{focus.t('settings.standalonePatient')}</option>
+            {platformUsers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.avatar ? `${u.avatar} ` : ''}
+                {u.name}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+
+      <span style={styles.fieldLabel}>{focus.t('settings.patientName')}</span>
       <input
-        style={{ ...styles.input, width: '60px' }}
-        placeholder={focus.t('settings.avatar')}
-        value={avatar}
-        onChange={(e) => setAvatar(e.target.value)}
+        style={{
+          ...styles.input,
+          ...(errors.name ? styles.inputError : {}),
+        }}
+        placeholder={focus.t('settings.patientName')}
+        value={name}
+        onChange={(e) => {
+          setName(e.target.value)
+          if (errors.name) setErrors((prev) => ({ ...prev, name: '' }))
+        }}
       />
+      {errors.name && <FieldError message={errors.name} />}
+
+      <span style={styles.fieldLabel}>{focus.t('settings.avatar')}</span>
+      <EmojiPicker value={avatar} onChange={setAvatar} type={type} />
+
       <div style={styles.formActions}>
         <button type="button" style={styles.saveBtn} onClick={submit}>
           {focus.t('settings.save')}
@@ -382,12 +547,20 @@ function AddMedicationForm({ focus, onDone }: { focus: FocusInstance; onDone: ()
   const [targetType, setTargetType] = useState('universal')
   const [defaultDosage, setDefaultDosage] = useState('')
   const [form, setForm] = useState('tablet')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {}
+    if (!name.trim()) errs.name = focus.t('settings.required')
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
 
   const submit = () => {
-    if (!name) return
+    if (!validate()) return
     focus
       .api('POST', '/medications', {
-        name,
+        name: name.trim(),
         target_type: targetType,
         default_dosage: defaultDosage,
         form,
@@ -398,12 +571,22 @@ function AddMedicationForm({ focus, onDone }: { focus: FocusInstance; onDone: ()
 
   return (
     <div style={styles.form}>
+      <span style={styles.fieldLabel}>{focus.t('settings.medicationName')}</span>
       <input
-        style={styles.input}
-        placeholder={focus.t('settings.name')}
+        style={{
+          ...styles.input,
+          ...(errors.name ? styles.inputError : {}),
+        }}
+        placeholder={focus.t('settings.medicationName')}
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => {
+          setName(e.target.value)
+          if (errors.name) setErrors((prev) => ({ ...prev, name: '' }))
+        }}
       />
+      {errors.name && <FieldError message={errors.name} />}
+
+      <span style={styles.fieldLabel}>{focus.t('settings.targetType')}</span>
       <select
         style={styles.input}
         value={targetType}
@@ -413,18 +596,23 @@ function AddMedicationForm({ focus, onDone }: { focus: FocusInstance; onDone: ()
         <option value="human">{focus.t('targetTypes.human')}</option>
         <option value="animal">{focus.t('targetTypes.animal')}</option>
       </select>
+
+      <span style={styles.fieldLabel}>{focus.t('settings.dosage')}</span>
       <input
         style={styles.input}
-        placeholder={focus.t('settings.dosage')}
+        placeholder={focus.t('settings.dosagePlaceholder')}
         value={defaultDosage}
         onChange={(e) => setDefaultDosage(e.target.value)}
       />
+
+      <span style={styles.fieldLabel}>{focus.t('settings.form')}</span>
       <select style={styles.input} value={form} onChange={(e) => setForm(e.target.value)}>
         <option value="tablet">{focus.t('forms.tablet')}</option>
         <option value="drops">{focus.t('forms.drops')}</option>
         <option value="injection">{focus.t('forms.injection')}</option>
         <option value="ointment">{focus.t('forms.ointment')}</option>
       </select>
+
       <div style={styles.formActions}>
         <button type="button" style={styles.saveBtn} onClick={submit}>
           {focus.t('settings.save')}
@@ -457,6 +645,7 @@ function AddPrescriptionForm({
   const [dosage, setDosage] = useState('')
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10))
   const [endDate, setEndDate] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   // Auto-fill dosage from selected medication
   useEffect(() => {
@@ -464,8 +653,15 @@ function AddPrescriptionForm({
     if (med?.default_dosage) setDosage(med.default_dosage)
   }, [medId, medications])
 
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {}
+    if (!medId) errs.medId = focus.t('settings.required')
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
   const submit = () => {
-    if (!medId) return
+    if (!validate()) return
     focus
       .api('POST', '/prescriptions', {
         patient_id: patientId,
@@ -478,34 +674,64 @@ function AddPrescriptionForm({
       .catch((err) => console.error('pill-tracker: add prescription', err))
   }
 
+  if (filtered.length === 0) {
+    return (
+      <div style={styles.form}>
+        <EmptyHint text={focus.t('settings.noMedicationsForType')} />
+        <button type="button" style={styles.cancelFormBtn} onClick={onDone}>
+          {focus.t('settings.cancel')}
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div style={styles.form}>
-      <select style={styles.input} value={medId} onChange={(e) => setMedId(e.target.value)}>
+      <span style={styles.fieldLabel}>{focus.t('settings.medication')}</span>
+      <select
+        style={{
+          ...styles.input,
+          ...(errors.medId ? styles.inputError : {}),
+        }}
+        value={medId}
+        onChange={(e) => {
+          setMedId(e.target.value)
+          if (errors.medId) setErrors((prev) => ({ ...prev, medId: '' }))
+        }}
+      >
         {filtered.map((m) => (
           <option key={m.id} value={m.id}>
             {m.name}
           </option>
         ))}
       </select>
+      {errors.medId && <FieldError message={errors.medId} />}
+
+      <span style={styles.fieldLabel}>{focus.t('settings.dosage')}</span>
       <input
         style={styles.input}
-        placeholder={focus.t('settings.dosage')}
+        placeholder={focus.t('settings.dosagePlaceholder')}
         value={dosage}
         onChange={(e) => setDosage(e.target.value)}
       />
+
+      <span style={styles.fieldLabel}>{focus.t('settings.startDate')}</span>
       <input
         style={styles.input}
         type="date"
         value={startDate}
         onChange={(e) => setStartDate(e.target.value)}
       />
+
+      <span style={styles.fieldLabel}>{focus.t('settings.endDate')}</span>
       <input
         style={styles.input}
         type="date"
-        placeholder={focus.t('settings.endDate')}
         value={endDate}
         onChange={(e) => setEndDate(e.target.value)}
       />
+      {!endDate && <div style={styles.formHint}>{focus.t('settings.indefinite')}</div>}
+
       <div style={styles.formActions}>
         <button type="button" style={styles.saveBtn} onClick={submit}>
           {focus.t('settings.save')}
@@ -529,13 +755,22 @@ function AddScheduleForm({
 }) {
   const [time, setTime] = useState('08:00')
   const [days, setDays] = useState<string[]>([])
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const allDays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
   const toggleDay = (d: string) => {
     setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
   }
 
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {}
+    if (!time) errs.time = focus.t('settings.required')
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
   const submit = () => {
+    if (!validate()) return
     focus
       .api('POST', '/schedules', { prescription_id: prescriptionId, time, days })
       .then(onDone)
@@ -544,12 +779,22 @@ function AddScheduleForm({
 
   return (
     <div style={styles.form}>
+      <span style={styles.fieldLabel}>{focus.t('settings.time')}</span>
       <input
-        style={styles.input}
+        style={{
+          ...styles.input,
+          ...(errors.time ? styles.inputError : {}),
+        }}
         type="time"
         value={time}
-        onChange={(e) => setTime(e.target.value)}
+        onChange={(e) => {
+          setTime(e.target.value)
+          if (errors.time) setErrors((prev) => ({ ...prev, time: '' }))
+        }}
       />
+      {errors.time && <FieldError message={errors.time} />}
+
+      <span style={styles.fieldLabel}>{focus.t('settings.days')}</span>
       <div style={styles.daysRow}>
         {allDays.map((d) => (
           <button
@@ -565,7 +810,8 @@ function AddScheduleForm({
           </button>
         ))}
       </div>
-      <div style={styles.formHint}>{focus.t('settings.everyday')}</div>
+      {days.length === 0 && <div style={styles.formHint}>{focus.t('settings.everydayHint')}</div>}
+
       <div style={styles.formActions}>
         <button type="button" style={styles.saveBtn} onClick={submit}>
           {focus.t('settings.save')}
@@ -677,6 +923,12 @@ const styles: Styles = {
     borderRadius: 'var(--radius, 0.625rem)',
     background: 'color-mix(in oklch, var(--muted) 30%, transparent)',
   },
+  fieldLabel: {
+    fontSize: '0.6875rem',
+    fontWeight: 500,
+    color: 'var(--muted-foreground)',
+    marginTop: '2px',
+  },
   input: {
     padding: '6px 10px',
     border: '1px solid var(--border)',
@@ -685,6 +937,14 @@ const styles: Styles = {
     color: 'var(--foreground)',
     fontSize: '0.8125rem',
     outline: 'none',
+  },
+  inputError: {
+    borderColor: 'var(--destructive, #ef4444)',
+  },
+  fieldError: {
+    fontSize: '0.6875rem',
+    color: 'var(--destructive, #ef4444)',
+    marginTop: '-2px',
   },
   formActions: {
     display: 'flex',
@@ -744,6 +1004,33 @@ const styles: Styles = {
   formHint: {
     fontSize: '0.6875rem',
     color: 'var(--muted-foreground)',
+  },
+  emojiPicker: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  emojiGrid: {
+    display: 'flex',
+    gap: '4px',
+    flexWrap: 'wrap',
+  },
+  emojiBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '32px',
+    height: '32px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius, 0.625rem)',
+    background: 'transparent',
+    fontSize: '1.125rem',
+    cursor: 'pointer',
+    padding: 0,
+  },
+  emojiBtnActive: {
+    borderColor: 'var(--primary)',
+    background: 'color-mix(in oklch, var(--primary) 15%, transparent)',
   },
   disabled: baseStyles.disabled,
 }
