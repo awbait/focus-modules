@@ -1,4 +1,11 @@
 import { baseStyles, registerWidget, usePermission } from '@focus-dashboard/sdk-types'
+import {
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Cancel01Icon,
+  Tick02Icon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import React, { useEffect, useRef, useState } from 'react'
 import type {
   DoseEntry,
@@ -128,7 +135,7 @@ function TodayApp({ focus }: WidgetProps) {
       <div style={styles.header}>
         {patients.length > 1 && (
           <button type="button" style={styles.navBtn} onClick={() => switchPatient(-1)}>
-            ‹
+            <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
           </button>
         )}
         <div style={styles.patientInfo}>
@@ -137,7 +144,7 @@ function TodayApp({ focus }: WidgetProps) {
         </div>
         {patients.length > 1 && (
           <button type="button" style={styles.navBtn} onClick={() => switchPatient(1)}>
-            ›
+            <HugeiconsIcon icon={ArrowRight01Icon} size={14} />
           </button>
         )}
         <span style={styles.counter}>
@@ -166,10 +173,10 @@ function TodayApp({ focus }: WidgetProps) {
                 <div style={styles.confirmRow}>
                   <span style={styles.confirmText}>{focus.t('widget.today.confirmGive')}</span>
                   <button type="button" style={styles.confirmBtn} onClick={() => giveDose(dose.id)}>
-                    ✓
+                    <HugeiconsIcon icon={Tick02Icon} size={16} />
                   </button>
                   <button type="button" style={styles.cancelBtn} onClick={() => setConfirmId(null)}>
-                    ✕
+                    <HugeiconsIcon icon={Cancel01Icon} size={16} />
                   </button>
                 </div>
               ) : skipId === dose.id ? (
@@ -182,7 +189,7 @@ function TodayApp({ focus }: WidgetProps) {
                     style={styles.skipInput}
                   />
                   <button type="button" style={styles.confirmBtn} onClick={() => skipDose(dose.id)}>
-                    ✓
+                    <HugeiconsIcon icon={Tick02Icon} size={16} />
                   </button>
                   <button
                     type="button"
@@ -192,7 +199,7 @@ function TodayApp({ focus }: WidgetProps) {
                       setSkipReason('')
                     }}
                   >
-                    ✕
+                    <HugeiconsIcon icon={Cancel01Icon} size={16} />
                   </button>
                 </div>
               ) : (

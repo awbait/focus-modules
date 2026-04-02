@@ -1,5 +1,7 @@
 import type { FocusInstance, FocusPublicUser } from '@focus-dashboard/sdk-types'
 import { baseStyles, registerWidget, usePermission } from '@focus-dashboard/sdk-types'
+import { Add01Icon, Cancel01Icon, Delete02Icon, Tick02Icon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import React, { useEffect, useState } from 'react'
 import type { Medication, Patient, Prescription, Schedule, Styles } from './types'
 
@@ -354,7 +356,7 @@ function ListItem({
             onDelete()
           }}
         >
-          \u2715
+          <HugeiconsIcon icon={Delete02Icon} size={14} />
         </button>
       )}
     </>
@@ -383,7 +385,7 @@ function ListItem({
 function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button type="button" style={styles.addBtn} onClick={onClick}>
-      + {label}
+      <HugeiconsIcon icon={Add01Icon} size={14} /> {label}
     </button>
   )
 }
