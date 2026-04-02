@@ -2,6 +2,11 @@
 
 Все заметные изменения документируются в этом файле.
 
+## [1.1.2] - 2026-04-02
+
+### Fixed
+- Settings: fix infinite request loop (useCallback/useEffect dependency cycle on focus)
+
 ## [1.1.1] - 2026-04-02
 
 ### Fixed
