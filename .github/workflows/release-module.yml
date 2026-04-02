@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   release:
@@ -134,6 +135,8 @@ jobs:
             --notes-file /tmp/release-notes.md
 
       - name: Update community-modules.json
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           MODULE_ID="${{ steps.meta.outputs.module_id }}"
           VERSION="${{ steps.meta.outputs.version }}"
@@ -152,8 +155,15 @@ jobs:
             exit 0
           fi
 
+          BRANCH="chore/update-${MODULE_ID}-v${VERSION}"
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add community-modules.json
           git commit -m "chore: update $MODULE_ID to v$VERSION"
-          git push origin HEAD:main
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "chore: update $MODULE_ID to v$VERSION" \
+            --body "Auto-generated: update community-modules.json after release $TAG" \
+            --head "$BRANCH" \
+            --base main
