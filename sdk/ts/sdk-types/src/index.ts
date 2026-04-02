@@ -45,6 +45,9 @@ export interface FocusInstance {
   /** Get the current authenticated user. Cached after first call. */
   getUser(): Promise<FocusUser>
 
+  /** Get the list of platform users (public info). Cached after first call. */
+  getUsers(): Promise<FocusPublicUser[]>
+
   /**
    * Check if the current user has the required permission level.
    * Uses role hierarchy: guest < resident < owner.
@@ -70,6 +73,13 @@ export interface FocusUser {
   id: string
   name: string
   role: 'owner' | 'resident' | 'guest'
+}
+
+/** Public user info returned by getUsers(). */
+export interface FocusPublicUser {
+  id: string
+  name: string
+  avatar: string
 }
 
 /** Predefined permission levels mapped to role hierarchy. */

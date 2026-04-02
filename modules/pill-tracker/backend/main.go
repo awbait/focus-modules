@@ -55,9 +55,7 @@ func main() {
 		a.Mux.HandleFunc("POST /doses/{id}/skip", handleSkipDose)
 		a.Mux.HandleFunc("GET /history", handleHistory)
 
-		// Generate doses on startup and start ticker
-		generateDoses()
-		markOverdueDoses()
+		// Start dose generation ticker (runs in background after server starts)
 		go dosesTicker()
 	})
 }
@@ -836,6 +834,11 @@ func handleHistory(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 func dosesTicker() {
+	// Initial generation after brief delay (let server start first)
+	time.Sleep(2 * time.Second)
+	generateDoses()
+	markOverdueDoses()
+
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 	for range ticker.C {
@@ -847,6 +850,13 @@ func dosesTicker() {
 func generateDoses() {
 	today := time.Now().Format("2006-01-02")
 	dayOfWeek := strings.ToLower(time.Now().Format("Mon"))[:3] // mon, tue, wed, ...
+
+	// Collect schedules first, then close rows before doing inserts (MaxOpenConns=1)
+	type schedEntry struct {
+		id   string
+		time string
+		days string
+	}
 
 	rows, err := db.Query(`
 		SELECT s.id, s.time, s.days
@@ -861,27 +871,30 @@ func generateDoses() {
 		log.Printf("generate doses: query schedules: %v", err)
 		return
 	}
-	defer func() { _ = rows.Close() }()
 
+	var entries []schedEntry
 	for rows.Next() {
-		var schedID, schedTime, daysJSON string
-		if err := rows.Scan(&schedID, &schedTime, &daysJSON); err != nil {
+		var e schedEntry
+		if err := rows.Scan(&e.id, &e.time, &e.days); err != nil {
 			log.Printf("generate doses: scan: %v", err)
 			continue
 		}
+		entries = append(entries, e)
+	}
+	_ = rows.Close()
 
+	for _, e := range entries {
 		var days []string
-		_ = json.Unmarshal([]byte(daysJSON), &days)
+		_ = json.Unmarshal([]byte(e.days), &days)
 
-		// Empty days = every day; otherwise check if today matches
 		if len(days) > 0 && !containsDay(days, dayOfWeek) {
 			continue
 		}
 
-		plannedAt := today + "T" + schedTime + ":00Z"
+		plannedAt := today + "T" + e.time + ":00Z"
 		_, err := db.Exec(
 			`INSERT OR IGNORE INTO pt_dose_logs (schedule_id, planned_at) VALUES (?, ?)`,
-			schedID, plannedAt,
+			e.id, plannedAt,
 		)
 		if err != nil {
 			log.Printf("generate doses: insert: %v", err)
