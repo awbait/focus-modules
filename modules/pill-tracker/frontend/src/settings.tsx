@@ -1,6 +1,6 @@
 import type { FocusInstance, FocusPublicUser } from '@focus-dashboard/sdk-types'
 import { baseStyles, registerWidget, usePermission } from '@focus-dashboard/sdk-types'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import type { Medication, Patient, Prescription, Schedule, Styles } from './types'
 
 // ---------------------------------------------------------------------------
@@ -49,58 +49,75 @@ function SettingsApp({ focus }: { focus: FocusInstance }) {
   const [showAddPrescript, setShowAddPrescript] = useState(false)
   const [showAddSchedule, setShowAddSchedule] = useState(false)
 
-  const loadPatients = useCallback(() => {
+  // Plain functions for event handlers (reused after CRUD operations)
+  const loadPatients = () => {
     focus
       .api<Patient[]>('GET', '/patients')
       .then(setPatients)
       .catch(() => {})
-  }, [focus])
+  }
 
-  const loadMedications = useCallback(() => {
+  const loadMedications = () => {
     focus
       .api<Medication[]>('GET', '/medications')
       .then(setMedications)
       .catch(() => {})
-  }, [focus])
+  }
 
-  const loadPrescriptions = useCallback(
-    (patientId: string) => {
-      focus
-        .api<Prescription[]>('GET', `/prescriptions?patient_id=${patientId}`)
-        .then(setPrescriptions)
-        .catch(() => {})
-    },
-    [focus],
-  )
+  const loadPrescriptions = (patientId: string) => {
+    focus
+      .api<Prescription[]>('GET', `/prescriptions?patient_id=${patientId}`)
+      .then(setPrescriptions)
+      .catch(() => {})
+  }
 
-  const loadSchedules = useCallback(
-    (prescriptionId: string) => {
-      focus
-        .api<Schedule[]>('GET', `/schedules?prescription_id=${prescriptionId}`)
-        .then(setSchedules)
-        .catch(() => {})
-    },
-    [focus],
-  )
+  const loadSchedules = (prescriptionId: string) => {
+    focus
+      .api<Schedule[]>('GET', `/schedules?prescription_id=${prescriptionId}`)
+      .then(setSchedules)
+      .catch(() => {})
+  }
 
+  // Initial data load — inline to avoid dependency chain issues
   useEffect(() => {
-    loadPatients()
-    loadMedications()
+    focus
+      .api<Patient[]>('GET', '/patients')
+      .then(setPatients)
+      .catch(() => {})
+    focus
+      .api<Medication[]>('GET', '/medications')
+      .then(setMedications)
+      .catch(() => {})
     focus
       .getUsers()
       .then(setPlatformUsers)
       .catch(() => {})
-  }, [loadPatients, loadMedications, focus])
+  }, [focus])
 
+  // Primitive dependency: react only to ID changes, not object reference
+  const selectedPatientId = selectedPatient?.id ?? null
   useEffect(() => {
-    if (selectedPatient) loadPrescriptions(selectedPatient.id)
-    else setPrescriptions([])
-  }, [selectedPatient, loadPrescriptions])
+    if (selectedPatientId) {
+      focus
+        .api<Prescription[]>('GET', `/prescriptions?patient_id=${selectedPatientId}`)
+        .then(setPrescriptions)
+        .catch(() => {})
+    } else {
+      setPrescriptions([])
+    }
+  }, [selectedPatientId, focus])
 
+  const selectedPrescriptionId = selectedPrescription?.id ?? null
   useEffect(() => {
-    if (selectedPrescription) loadSchedules(selectedPrescription.id)
-    else setSchedules([])
-  }, [selectedPrescription, loadSchedules])
+    if (selectedPrescriptionId) {
+      focus
+        .api<Schedule[]>('GET', `/schedules?prescription_id=${selectedPrescriptionId}`)
+        .then(setSchedules)
+        .catch(() => {})
+    } else {
+      setSchedules([])
+    }
+  }, [selectedPrescriptionId, focus])
 
   const confirmDelete = (action: () => void) => {
     if (window.confirm(focus.t('settings.confirmDelete'))) {
