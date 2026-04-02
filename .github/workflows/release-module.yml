@@ -125,11 +125,13 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_NOTES: ${{ steps.notes.outputs.body }}
         run: |
+          printf '%s\n' "$RELEASE_NOTES" > /tmp/release-notes.md
           gh release create "$GITHUB_REF_NAME" \
             "${{ steps.meta.outputs.module_dir }}/${{ steps.meta.outputs.module_id }}.zip" \
             --title "${{ steps.meta.outputs.module_id }} v${{ steps.meta.outputs.version }}" \
-            --notes "${{ steps.notes.outputs.body }}"
+            --notes-file /tmp/release-notes.md
 
       - name: Update community-modules.json
         run: |
