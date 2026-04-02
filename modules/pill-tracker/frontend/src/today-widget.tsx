@@ -1,5 +1,5 @@
 import { baseStyles, registerWidget, usePermission } from '@focus-dashboard/sdk-types'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type {
   DoseEntry,
   Patient,
@@ -22,22 +22,24 @@ function TodayApp({ focus }: WidgetProps) {
   const canWrite = usePermission(focus, 'write')
 
   const selectedPatient = patients[selectedIdx] ?? null
+  const selectedPatientId = selectedPatient?.id ?? null
 
-  const loadDoses = useCallback(
-    (patientId: string) => {
-      focus
-        .api<TodayResponse>('GET', `/today?patient=${patientId}`)
-        .then((data) => {
-          setDoses(data.doses)
-          setGiven(data.given)
-          setTotal(data.total)
-        })
-        .catch((err) => console.error('pill-tracker: load doses', err))
-    },
-    [focus],
-  )
+  // Ref to track current patient ID for WS event handlers
+  const selectedPatientIdRef = useRef(selectedPatientId)
+  selectedPatientIdRef.current = selectedPatientId
 
-  // Init: load patients and saved selection
+  const loadDoses = (patientId: string) => {
+    focus
+      .api<TodayResponse>('GET', `/today?patient=${patientId}`)
+      .then((data) => {
+        setDoses(data.doses)
+        setGiven(data.given)
+        setTotal(data.total)
+      })
+      .catch((err) => console.error('pill-tracker: load doses', err))
+  }
+
+  // Init: load patients, saved selection, subscribe to WS events
   useEffect(() => {
     Promise.all([focus.api<Patient[]>('GET', '/patients'), focus.getSettings<WidgetSettings>()])
       .then(([pts, settings]) => {
@@ -58,16 +60,14 @@ function TodayApp({ focus }: WidgetProps) {
         setLoading(false)
       })
 
-    // Subscribe to dose events
-    const unsub1 = focus.on('dose.given', () => {
-      if (selectedPatient) loadDoses(selectedPatient.id)
-    })
-    const unsub2 = focus.on('dose.skipped', () => {
-      if (selectedPatient) loadDoses(selectedPatient.id)
-    })
-    const unsub3 = focus.on('dose.overdue', () => {
-      if (selectedPatient) loadDoses(selectedPatient.id)
-    })
+    // Subscribe to dose events — use ref to always read current patient
+    const reloadCurrent = () => {
+      const id = selectedPatientIdRef.current
+      if (id) loadDoses(id)
+    }
+    const unsub1 = focus.on('dose.given', reloadCurrent)
+    const unsub2 = focus.on('dose.skipped', reloadCurrent)
+    const unsub3 = focus.on('dose.overdue', reloadCurrent)
 
     focus.ready()
     return () => {
@@ -75,48 +75,38 @@ function TodayApp({ focus }: WidgetProps) {
       unsub2()
       unsub3()
     }
-  }, [focus, loadDoses, selectedPatient])
+  }, [focus])
 
-  const switchPatient = useCallback(
-    (dir: number) => {
-      if (patients.length === 0) return
-      const next = (selectedIdx + dir + patients.length) % patients.length
-      setSelectedIdx(next)
-      loadDoses(patients[next].id)
-      // Save per-board selection
-      focus
-        .api('PUT', `/widget-settings/${focus.getWidgetId()}`, { patient_id: patients[next].id })
-        .catch(() => {})
-    },
-    [focus, patients, selectedIdx, loadDoses],
-  )
+  const switchPatient = (dir: number) => {
+    if (patients.length === 0) return
+    const next = (selectedIdx + dir + patients.length) % patients.length
+    setSelectedIdx(next)
+    loadDoses(patients[next].id)
+    focus
+      .api('PUT', `/widget-settings/${focus.getWidgetId()}`, { patient_id: patients[next].id })
+      .catch(() => {})
+  }
 
-  const giveDose = useCallback(
-    (id: string) => {
-      focus
-        .api('POST', `/doses/${id}/give`)
-        .then(() => {
-          if (selectedPatient) loadDoses(selectedPatient.id)
-          setConfirmId(null)
-        })
-        .catch((err) => console.error('pill-tracker: give', err))
-    },
-    [focus, selectedPatient, loadDoses],
-  )
+  const giveDose = (id: string) => {
+    focus
+      .api('POST', `/doses/${id}/give`)
+      .then(() => {
+        if (selectedPatientId) loadDoses(selectedPatientId)
+        setConfirmId(null)
+      })
+      .catch((err) => console.error('pill-tracker: give', err))
+  }
 
-  const skipDose = useCallback(
-    (id: string) => {
-      focus
-        .api('POST', `/doses/${id}/skip`, { reason: skipReason })
-        .then(() => {
-          if (selectedPatient) loadDoses(selectedPatient.id)
-          setSkipId(null)
-          setSkipReason('')
-        })
-        .catch((err) => console.error('pill-tracker: skip', err))
-    },
-    [focus, selectedPatient, loadDoses, skipReason],
-  )
+  const skipDose = (id: string) => {
+    focus
+      .api('POST', `/doses/${id}/skip`, { reason: skipReason })
+      .then(() => {
+        if (selectedPatientId) loadDoses(selectedPatientId)
+        setSkipId(null)
+        setSkipReason('')
+      })
+      .catch((err) => console.error('pill-tracker: skip', err))
+  }
 
   if (loading) {
     return <div style={styles.container}>...</div>
