@@ -1,6 +1,6 @@
 {
   "name": "@focus-dashboard/sdk-types",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "TypeScript types and base classes for Focus Dashboard dynamic modules",
   "license": "MIT",
   "author": "awbait",
