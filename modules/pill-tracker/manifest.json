@@ -2,7 +2,7 @@
   "id": "pill-tracker",
   "name": "Pill Tracker",
   "description": "Track medication intake for humans and animals: patients, prescriptions, schedules, dose logging",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "awbait",
   "widgets": [
     {
