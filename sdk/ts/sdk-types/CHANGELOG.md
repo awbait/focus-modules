@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-03
+
+### Added
+- `getPortalContainer()` метод в `FocusInstance` — возвращает DOM-контейнер для порталов
+- `PortalContainerContext` — React Context для проброса portal container в модули
+- `usePortalContainer()` хук — читает portal container из контекста
+- `registerWidget()` автоматически оборачивает компонент в `PortalContainerContext.Provider`
+
 ## [0.8.0] - 2026-04-02
 
 ### Added
