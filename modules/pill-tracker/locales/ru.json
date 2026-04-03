@@ -1,10 +1,11 @@
 {
   "widget": {
     "today": {
-      "title": "Дозы на сегодня",
+      "title": "Календарь приёма",
       "noPatients": "Нет пациентов",
-      "noDoses": "Нет доз на сегодня",
+      "noDoses": "Нет доз на этот день",
       "allDone": "Всё принято!",
+      "done": "принято",
       "progress": "{{given}}/{{total}}",
       "give": "Принять",
       "skip": "Пропустить",
@@ -18,7 +19,13 @@
       "cancel": "Отмена",
       "confirm": "Подтвердить",
       "history": "История",
-      "givenBy": "выдал {{name}}"
+      "givenBy": "выдал {{name}}",
+      "filter": {
+        "all": "Все",
+        "morning": "Утро",
+        "afternoon": "День",
+        "evening": "Вечер"
+      }
     }
   },
   "settings": {
@@ -56,6 +63,7 @@
     "selectPatient": "Выберите пациента",
     "selectPrescription": "Выберите назначение",
     "noMedicationsForType": "Нет медикаментов для этого типа пациента",
+    "searchMedication": "Поиск медикамента...",
     "required": "Обязательное поле",
     "active": "Активно",
     "paused": "Пауза",
@@ -64,7 +72,43 @@
     "everyday": "Каждый день",
     "everydayHint": "Дни не выбраны = каждый день",
     "linkedUser": "Привязать к пользователю",
-    "standalonePatient": "Без привязки"
+    "standalonePatient": "Без привязки",
+    "availableUsers": "Добавить из пользователей",
+    "myPatients": "Пациенты",
+    "back": "Назад",
+    "prescriptionsCount": "Назначения ({{count}})",
+    "mealRelation": "Приём относительно еды",
+    "mealMinutes": "Минут до/после еды",
+    "durationDays": "Длительность курса (дни)",
+    "durationDaysShort": "{{n}} дн.",
+    "durationPlaceholder": "Пусто = бессрочно",
+    "frequencyType": "Периодичность",
+    "frequencyValue": "Значение интервала",
+    "courseOnDays": "Дней приёма",
+    "courseOffDays": "Дней перерыва",
+    "monthDay": "День месяца",
+    "coursePeriod": "Период курса",
+    "courseHint": "Укажите длительность ИЛИ дату окончания. Пусто = бессрочно.",
+    "scheduleHint": "После сохранения добавьте расписание с временем и периодичностью из карточки пациента."
+  },
+  "meal": {
+    "none": "Не важно",
+    "before": "До еды",
+    "during": "Во время еды",
+    "after": "После еды",
+    "minutes": "{{n}} мин",
+    "hours": "{{n}} ч"
+  },
+  "frequency": {
+    "daily": "Каждый день",
+    "every_other_day": "Через день",
+    "every_n_hours": "Каждые N часов",
+    "every_n_days": "Каждые N дней",
+    "weekly": "Раз в неделю",
+    "biweekly": "Раз в 2 недели",
+    "monthly": "Раз в месяц",
+    "prn": "По необходимости",
+    "course": "Курсами"
   },
   "types": {
     "human": "Человек",

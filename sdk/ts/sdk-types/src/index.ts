@@ -127,7 +127,7 @@ export class ReactWidgetElement extends HTMLElement {
 }
 
 // ---------------------------------------------------------------------------
-// PortalContainerContext — portal target for nested dialogs
+// PortalContainerContext — Radix portal target for nested dialogs
 // ---------------------------------------------------------------------------
 
 /**

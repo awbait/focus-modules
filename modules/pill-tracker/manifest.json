@@ -6,12 +6,12 @@
   "author": "awbait",
   "widgets": [
     {
-      "id": "today",
-      "name": "Today",
-      "description": "Today's doses with progress tracking",
+      "id": "calendar",
+      "name": "Pill Calendar",
+      "description": "Weekly dose calendar with progress tracking",
       "min": "2x2",
-      "max": "4x3",
-      "default": "2x2"
+      "max": "4x4",
+      "default": "3x3"
     }
   ],
   "events": [

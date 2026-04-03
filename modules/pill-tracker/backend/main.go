@@ -25,6 +25,19 @@ func main() {
 		db = a.DB
 		app = a
 
+		// Upgrade schema for existing installs (ALTER TABLE is no-op if column exists)
+		upgrades := []string{
+			"ALTER TABLE pt_prescriptions ADD COLUMN meal_relation TEXT NOT NULL DEFAULT 'none'",
+			"ALTER TABLE pt_prescriptions ADD COLUMN meal_minutes INTEGER NOT NULL DEFAULT 30",
+			"ALTER TABLE pt_prescriptions ADD COLUMN duration_days INTEGER",
+			"ALTER TABLE pt_schedules ADD COLUMN frequency_type TEXT NOT NULL DEFAULT 'daily'",
+			"ALTER TABLE pt_schedules ADD COLUMN frequency_value INTEGER NOT NULL DEFAULT 0",
+			"ALTER TABLE pt_schedules ADD COLUMN course_off_days INTEGER NOT NULL DEFAULT 0",
+		}
+		for _, q := range upgrades {
+			_, _ = db.Exec(q) // ignore "duplicate column" errors
+		}
+
 		// Patients
 		a.Mux.HandleFunc("GET /patients", handleListPatients)
 		a.Mux.HandleFunc("POST /patients", handleCreatePatient)
@@ -345,12 +358,15 @@ type prescription struct {
 	Status       string  `json:"status"`
 	StartDate    string  `json:"start_date"`
 	EndDate      *string `json:"end_date"`
+	MealRelation string  `json:"meal_relation"`
+	MealMinutes  int     `json:"meal_minutes"`
+	DurationDays *int    `json:"duration_days"`
 	CreatedAt    string  `json:"created_at"`
 }
 
 func handleListPrescriptions(w http.ResponseWriter, r *http.Request) {
 	patientID := r.URL.Query().Get("patient_id")
-	q := "SELECT id, patient_id, medication_id, dosage, status, start_date, end_date, created_at FROM pt_prescriptions"
+	q := "SELECT id, patient_id, medication_id, dosage, status, start_date, end_date, meal_relation, meal_minutes, duration_days, created_at FROM pt_prescriptions"
 	args := []any{}
 	if patientID != "" {
 		q += " WHERE patient_id = ?"
@@ -368,7 +384,7 @@ func handleListPrescriptions(w http.ResponseWriter, r *http.Request) {
 	prescriptions := []prescription{}
 	for rows.Next() {
 		var p prescription
-		if err := rows.Scan(&p.ID, &p.PatientID, &p.MedicationID, &p.Dosage, &p.Status, &p.StartDate, &p.EndDate, &p.CreatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.PatientID, &p.MedicationID, &p.Dosage, &p.Status, &p.StartDate, &p.EndDate, &p.MealRelation, &p.MealMinutes, &p.DurationDays, &p.CreatedAt); err != nil {
 			fm.InternalError(w, "scan prescription", err)
 			return
 		}
@@ -387,6 +403,9 @@ func handleCreatePrescription(w http.ResponseWriter, r *http.Request) {
 		Dosage       string  `json:"dosage"`
 		StartDate    string  `json:"start_date"`
 		EndDate      *string `json:"end_date"`
+		MealRelation string  `json:"meal_relation"`
+		MealMinutes  int     `json:"meal_minutes"`
+		DurationDays *int    `json:"duration_days"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		fm.HTTPError(w, 400, "invalid json")
@@ -407,12 +426,35 @@ func handleCreatePrescription(w http.ResponseWriter, r *http.Request) {
 	if req.StartDate == "" {
 		req.StartDate = time.Now().Format("2006-01-02")
 	}
+	if req.MealRelation == "" {
+		req.MealRelation = "none"
+	}
+	validMealRelations := map[string]bool{"none": true, "before": true, "during": true, "after": true}
+	if !validMealRelations[req.MealRelation] {
+		fm.HTTPError(w, 400, "meal_relation must be none, before, during, or after")
+		return
+	}
+	if req.MealMinutes == 0 {
+		req.MealMinutes = 30
+	}
+
+	// Auto-calculate end_date from duration_days
+	if req.DurationDays != nil && req.EndDate == nil {
+		start, err := time.Parse("2006-01-02", req.StartDate)
+		if err == nil {
+			end := start.AddDate(0, 0, *req.DurationDays).Format("2006-01-02")
+			req.EndDate = &end
+		}
+	}
 
 	var p prescription
 	err := db.QueryRow(
-		`INSERT INTO pt_prescriptions (patient_id, medication_id, dosage, start_date, end_date) VALUES (?, ?, ?, ?, ?) RETURNING id, patient_id, medication_id, dosage, status, start_date, end_date, created_at`,
+		`INSERT INTO pt_prescriptions (patient_id, medication_id, dosage, start_date, end_date, meal_relation, meal_minutes, duration_days)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		 RETURNING id, patient_id, medication_id, dosage, status, start_date, end_date, meal_relation, meal_minutes, duration_days, created_at`,
 		req.PatientID, req.MedicationID, req.Dosage, req.StartDate, req.EndDate,
-	).Scan(&p.ID, &p.PatientID, &p.MedicationID, &p.Dosage, &p.Status, &p.StartDate, &p.EndDate, &p.CreatedAt)
+		req.MealRelation, req.MealMinutes, req.DurationDays,
+	).Scan(&p.ID, &p.PatientID, &p.MedicationID, &p.Dosage, &p.Status, &p.StartDate, &p.EndDate, &p.MealRelation, &p.MealMinutes, &p.DurationDays, &p.CreatedAt)
 	if err != nil {
 		fm.InternalError(w, "create prescription", err)
 		return
@@ -426,9 +468,12 @@ func handleUpdatePrescription(w http.ResponseWriter, r *http.Request) {
 	}
 	id := r.PathValue("id")
 	var req struct {
-		Dosage  string  `json:"dosage"`
-		Status  string  `json:"status"`
-		EndDate *string `json:"end_date"`
+		Dosage       string  `json:"dosage"`
+		Status       string  `json:"status"`
+		EndDate      *string `json:"end_date"`
+		MealRelation string  `json:"meal_relation"`
+		MealMinutes  *int    `json:"meal_minutes"`
+		DurationDays *int    `json:"duration_days"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		fm.HTTPError(w, 400, "invalid json")
@@ -442,9 +487,19 @@ func handleUpdatePrescription(w http.ResponseWriter, r *http.Request) {
 
 	var p prescription
 	err := db.QueryRow(
-		`UPDATE pt_prescriptions SET dosage = CASE WHEN ? = '' THEN dosage ELSE ? END, status = CASE WHEN ? = '' THEN status ELSE ? END, end_date = ? WHERE id = ? RETURNING id, patient_id, medication_id, dosage, status, start_date, end_date, created_at`,
-		req.Dosage, req.Dosage, req.Status, req.Status, req.EndDate, id,
-	).Scan(&p.ID, &p.PatientID, &p.MedicationID, &p.Dosage, &p.Status, &p.StartDate, &p.EndDate, &p.CreatedAt)
+		`UPDATE pt_prescriptions SET
+			dosage = CASE WHEN ? = '' THEN dosage ELSE ? END,
+			status = CASE WHEN ? = '' THEN status ELSE ? END,
+			end_date = ?,
+			meal_relation = CASE WHEN ? = '' THEN meal_relation ELSE ? END,
+			meal_minutes = CASE WHEN ? IS NULL THEN meal_minutes ELSE ? END,
+			duration_days = ?
+		 WHERE id = ?
+		 RETURNING id, patient_id, medication_id, dosage, status, start_date, end_date, meal_relation, meal_minutes, duration_days, created_at`,
+		req.Dosage, req.Dosage, req.Status, req.Status, req.EndDate,
+		req.MealRelation, req.MealRelation, req.MealMinutes, req.MealMinutes,
+		req.DurationDays, id,
+	).Scan(&p.ID, &p.PatientID, &p.MedicationID, &p.Dosage, &p.Status, &p.StartDate, &p.EndDate, &p.MealRelation, &p.MealMinutes, &p.DurationDays, &p.CreatedAt)
 	if err == sql.ErrNoRows {
 		fm.HTTPError(w, 404, "prescription not found")
 		return
@@ -483,6 +538,9 @@ type schedule struct {
 	Time           string   `json:"time"`
 	Days           []string `json:"days"`
 	Active         bool     `json:"active"`
+	FrequencyType  string   `json:"frequency_type"`
+	FrequencyValue int      `json:"frequency_value"`
+	CourseOffDays  int      `json:"course_off_days"`
 	CreatedAt      string   `json:"created_at"`
 }
 
@@ -493,7 +551,7 @@ func handleListSchedules(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := db.Query(
-		"SELECT id, prescription_id, time, days, active, created_at FROM pt_schedules WHERE prescription_id = ? ORDER BY time",
+		"SELECT id, prescription_id, time, days, active, frequency_type, frequency_value, course_off_days, created_at FROM pt_schedules WHERE prescription_id = ? ORDER BY time",
 		prescriptionID,
 	)
 	if err != nil {
@@ -507,7 +565,7 @@ func handleListSchedules(w http.ResponseWriter, r *http.Request) {
 		var s schedule
 		var daysJSON string
 		var active int
-		if err := rows.Scan(&s.ID, &s.PrescriptionID, &s.Time, &daysJSON, &active, &s.CreatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.PrescriptionID, &s.Time, &daysJSON, &active, &s.FrequencyType, &s.FrequencyValue, &s.CourseOffDays, &s.CreatedAt); err != nil {
 			fm.InternalError(w, "scan schedule", err)
 			return
 		}
@@ -521,6 +579,12 @@ func handleListSchedules(w http.ResponseWriter, r *http.Request) {
 	fm.JSON(w, schedules)
 }
 
+var validFrequencyTypes = map[string]bool{
+	"daily": true, "every_other_day": true, "every_n_hours": true,
+	"every_n_days": true, "weekly": true, "biweekly": true,
+	"monthly": true, "prn": true, "course": true,
+}
+
 func handleCreateSchedule(w http.ResponseWriter, r *http.Request) {
 	if !fm.RequireRole(w, r, fm.RoleResident) {
 		return
@@ -529,6 +593,9 @@ func handleCreateSchedule(w http.ResponseWriter, r *http.Request) {
 		PrescriptionID string   `json:"prescription_id"`
 		Time           string   `json:"time"`
 		Days           []string `json:"days"`
+		FrequencyType  string   `json:"frequency_type"`
+		FrequencyValue int      `json:"frequency_value"`
+		CourseOffDays  int      `json:"course_off_days"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		fm.HTTPError(w, 400, "invalid json")
@@ -549,15 +616,24 @@ func handleCreateSchedule(w http.ResponseWriter, r *http.Request) {
 		fm.HTTPError(w, 400, "invalid day values")
 		return
 	}
+	if req.FrequencyType == "" {
+		req.FrequencyType = "daily"
+	}
+	if !validFrequencyTypes[req.FrequencyType] {
+		fm.HTTPError(w, 400, "invalid frequency_type")
+		return
+	}
 
 	daysJSON, _ := json.Marshal(req.Days)
 	var s schedule
 	var daysOut string
 	var active int
 	err := db.QueryRow(
-		`INSERT INTO pt_schedules (prescription_id, time, days) VALUES (?, ?, ?) RETURNING id, prescription_id, time, days, active, created_at`,
-		req.PrescriptionID, req.Time, string(daysJSON),
-	).Scan(&s.ID, &s.PrescriptionID, &s.Time, &daysOut, &active, &s.CreatedAt)
+		`INSERT INTO pt_schedules (prescription_id, time, days, frequency_type, frequency_value, course_off_days)
+		 VALUES (?, ?, ?, ?, ?, ?)
+		 RETURNING id, prescription_id, time, days, active, frequency_type, frequency_value, course_off_days, created_at`,
+		req.PrescriptionID, req.Time, string(daysJSON), req.FrequencyType, req.FrequencyValue, req.CourseOffDays,
+	).Scan(&s.ID, &s.PrescriptionID, &s.Time, &daysOut, &active, &s.FrequencyType, &s.FrequencyValue, &s.CourseOffDays, &s.CreatedAt)
 	if err != nil {
 		fm.InternalError(w, "create schedule", err)
 		return
@@ -568,8 +644,10 @@ func handleCreateSchedule(w http.ResponseWriter, r *http.Request) {
 		s.Days = []string{}
 	}
 
-	// Generate doses for this new schedule immediately
-	generateDosesForSchedule(s.ID, req.Time, req.Days)
+	// Generate doses for this new schedule immediately (skip prn — on-demand only)
+	if req.FrequencyType != "prn" {
+		generateDosesForSchedule(s.ID, req.Time, req.Days, req.FrequencyType, req.FrequencyValue, req.CourseOffDays)
+	}
 
 	fm.JSON(w, s)
 }
@@ -580,9 +658,12 @@ func handleUpdateSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 	id := r.PathValue("id")
 	var req struct {
-		Time   string   `json:"time"`
-		Days   []string `json:"days"`
-		Active *bool    `json:"active"`
+		Time           string   `json:"time"`
+		Days           []string `json:"days"`
+		Active         *bool    `json:"active"`
+		FrequencyType  string   `json:"frequency_type"`
+		FrequencyValue *int     `json:"frequency_value"`
+		CourseOffDays  *int     `json:"course_off_days"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		fm.HTTPError(w, 400, "invalid json")
@@ -596,6 +677,10 @@ func handleUpdateSchedule(w http.ResponseWriter, r *http.Request) {
 		fm.HTTPError(w, 400, "invalid day values")
 		return
 	}
+	if req.FrequencyType != "" && !validFrequencyTypes[req.FrequencyType] {
+		fm.HTTPError(w, 400, "invalid frequency_type")
+		return
+	}
 
 	daysJSON, _ := json.Marshal(req.Days)
 	activeInt := 1
@@ -607,9 +692,19 @@ func handleUpdateSchedule(w http.ResponseWriter, r *http.Request) {
 	var daysOut string
 	var activeOut int
 	err := db.QueryRow(
-		`UPDATE pt_schedules SET time = CASE WHEN ? = '' THEN time ELSE ? END, days = CASE WHEN ? = '[]' THEN days ELSE ? END, active = ? WHERE id = ? RETURNING id, prescription_id, time, days, active, created_at`,
-		req.Time, req.Time, string(daysJSON), string(daysJSON), activeInt, id,
-	).Scan(&s.ID, &s.PrescriptionID, &s.Time, &daysOut, &activeOut, &s.CreatedAt)
+		`UPDATE pt_schedules SET
+			time = CASE WHEN ? = '' THEN time ELSE ? END,
+			days = CASE WHEN ? = '[]' THEN days ELSE ? END,
+			active = ?,
+			frequency_type = CASE WHEN ? = '' THEN frequency_type ELSE ? END,
+			frequency_value = CASE WHEN ? IS NULL THEN frequency_value ELSE ? END,
+			course_off_days = CASE WHEN ? IS NULL THEN course_off_days ELSE ? END
+		 WHERE id = ?
+		 RETURNING id, prescription_id, time, days, active, frequency_type, frequency_value, course_off_days, created_at`,
+		req.Time, req.Time, string(daysJSON), string(daysJSON), activeInt,
+		req.FrequencyType, req.FrequencyType, req.FrequencyValue, req.FrequencyValue,
+		req.CourseOffDays, req.CourseOffDays, id,
+	).Scan(&s.ID, &s.PrescriptionID, &s.Time, &daysOut, &activeOut, &s.FrequencyType, &s.FrequencyValue, &s.CourseOffDays, &s.CreatedAt)
 	if err == sql.ErrNoRows {
 		fm.HTTPError(w, 404, "schedule not found")
 		return
@@ -675,7 +770,24 @@ func handleToday(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	today := time.Now().Format("2006-01-02")
+	targetDate := time.Now().Format("2006-01-02")
+	if d := r.URL.Query().Get("date"); d != "" {
+		parsed, err := time.Parse("2006-01-02", d)
+		if err != nil {
+			fm.HTTPError(w, 400, "date must be YYYY-MM-DD format")
+			return
+		}
+		now := time.Now()
+		diff := parsed.Sub(now)
+		if diff < -7*24*time.Hour || diff > 7*24*time.Hour {
+			fm.HTTPError(w, 400, "date must be within 7 days of today")
+			return
+		}
+		targetDate = d
+		// Ensure doses exist for the requested date
+		generateDosesForDate(parsed)
+	}
+
 	rows, err := db.Query(`
 		SELECT dl.id, dl.schedule_id, dl.planned_at, dl.given_at, dl.given_by, dl.given_by_name,
 		       dl.status, dl.skip_reason,
@@ -686,7 +798,7 @@ func handleToday(w http.ResponseWriter, r *http.Request) {
 		JOIN pt_medications m ON m.id = p.medication_id
 		WHERE p.patient_id = ? AND date(dl.planned_at) = ?
 		ORDER BY dl.planned_at`,
-		patientID, today,
+		patientID, targetDate,
 	)
 	if err != nil {
 		fm.InternalError(w, "query today", err)
@@ -848,35 +960,47 @@ func dosesTicker() {
 }
 
 func generateDoses() {
-	today := time.Now().Format("2006-01-02")
-	dayOfWeek := strings.ToLower(time.Now().Format("Mon"))[:3] // mon, tue, wed, ...
+	now := time.Now()
+	// Generate doses for today + 7 days ahead
+	for i := 0; i < 8; i++ {
+		generateDosesForDate(now.AddDate(0, 0, i))
+	}
+}
+
+func generateDosesForDate(date time.Time) {
+	dateStr := date.Format("2006-01-02")
+	dayOfWeek := strings.ToLower(date.Format("Mon"))[:3] // mon, tue, wed, ...
 
 	// Collect schedules first, then close rows before doing inserts (MaxOpenConns=1)
 	type schedEntry struct {
-		id   string
-		time string
-		days string
+		id             string
+		time           string
+		days           string
+		frequencyType  string
+		frequencyValue int
+		courseOffDays  int
+		startDate      string
 	}
 
 	rows, err := db.Query(`
-		SELECT s.id, s.time, s.days
+		SELECT s.id, s.time, s.days, s.frequency_type, s.frequency_value, s.course_off_days, p.start_date
 		FROM pt_schedules s
 		JOIN pt_prescriptions p ON p.id = s.prescription_id
 		WHERE p.status = 'active' AND s.active = 1
 		  AND (p.end_date IS NULL OR p.end_date >= ?)
 		  AND p.start_date <= ?`,
-		today, today,
+		dateStr, dateStr,
 	)
 	if err != nil {
-		log.Printf("generate doses: query schedules: %v", err)
+		log.Printf("generate doses for %s: query schedules: %v", dateStr, err)
 		return
 	}
 
 	var entries []schedEntry
 	for rows.Next() {
 		var e schedEntry
-		if err := rows.Scan(&e.id, &e.time, &e.days); err != nil {
-			log.Printf("generate doses: scan: %v", err)
+		if err := rows.Scan(&e.id, &e.time, &e.days, &e.frequencyType, &e.frequencyValue, &e.courseOffDays, &e.startDate); err != nil {
+			log.Printf("generate doses for %s: scan: %v", dateStr, err)
 			continue
 		}
 		entries = append(entries, e)
@@ -884,39 +1008,165 @@ func generateDoses() {
 	_ = rows.Close()
 
 	for _, e := range entries {
-		var days []string
-		_ = json.Unmarshal([]byte(e.days), &days)
-
-		if len(days) > 0 && !containsDay(days, dayOfWeek) {
+		if !shouldGenerateDose(e.frequencyType, e.frequencyValue, e.courseOffDays, e.days, e.startDate, date, dayOfWeek) {
 			continue
 		}
 
-		plannedAt := today + "T" + e.time + ":00Z"
-		_, err := db.Exec(
-			`INSERT OR IGNORE INTO pt_dose_logs (schedule_id, planned_at) VALUES (?, ?)`,
-			e.id, plannedAt,
-		)
-		if err != nil {
-			log.Printf("generate doses: insert: %v", err)
+		if e.frequencyType == "every_n_hours" && e.frequencyValue > 0 {
+			// Generate multiple doses throughout the day
+			for h := 0; h < 24; h += e.frequencyValue {
+				plannedAt := fmt.Sprintf("%sT%02d:00:00Z", dateStr, h)
+				_, err := db.Exec(`INSERT OR IGNORE INTO pt_dose_logs (schedule_id, planned_at) VALUES (?, ?)`, e.id, plannedAt)
+				if err != nil {
+					log.Printf("generate doses for %s: insert: %v", dateStr, err)
+				}
+			}
+		} else {
+			plannedAt := dateStr + "T" + e.time + ":00Z"
+			_, err := db.Exec(`INSERT OR IGNORE INTO pt_dose_logs (schedule_id, planned_at) VALUES (?, ?)`, e.id, plannedAt)
+			if err != nil {
+				log.Printf("generate doses for %s: insert: %v", dateStr, err)
+			}
 		}
 	}
 }
 
-func generateDosesForSchedule(schedID, schedTime string, days []string) {
-	today := time.Now().Format("2006-01-02")
-	dayOfWeek := strings.ToLower(time.Now().Format("Mon"))[:3]
+// shouldGenerateDose determines if a dose should be generated for the given date
+// based on frequency type and schedule configuration.
+func shouldGenerateDose(freqType string, freqValue, courseOffDays int, daysJSON, startDateStr string, date time.Time, dayOfWeek string) bool {
+	var days []string
+	_ = json.Unmarshal([]byte(daysJSON), &days)
 
-	if len(days) > 0 && !containsDay(days, dayOfWeek) {
-		return
+	switch freqType {
+	case "daily", "every_n_hours":
+		// If specific days are set, check day of week
+		if len(days) > 0 && !containsDay(days, dayOfWeek) {
+			return false
+		}
+		return true
+
+	case "every_other_day":
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return false
+		}
+		daysSinceStart := int(date.Sub(startDate).Hours() / 24)
+		return daysSinceStart%2 == 0
+
+	case "every_n_days":
+		if freqValue <= 0 {
+			return true
+		}
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return false
+		}
+		daysSinceStart := int(date.Sub(startDate).Hours() / 24)
+		return daysSinceStart%freqValue == 0
+
+	case "weekly":
+		if len(days) > 0 {
+			return containsDay(days, dayOfWeek)
+		}
+		// Default: same weekday as start
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return false
+		}
+		return date.Weekday() == startDate.Weekday()
+
+	case "biweekly":
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return false
+		}
+		daysSinceStart := int(date.Sub(startDate).Hours() / 24)
+		weeksSinceStart := daysSinceStart / 7
+		if weeksSinceStart%2 != 0 {
+			return false
+		}
+		if len(days) > 0 {
+			return containsDay(days, dayOfWeek)
+		}
+		return date.Weekday() == startDate.Weekday()
+
+	case "monthly":
+		if freqValue > 0 {
+			return date.Day() == freqValue
+		}
+		// Default: same day of month as start
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return false
+		}
+		return date.Day() == startDate.Day()
+
+	case "course":
+		if freqValue <= 0 {
+			return true
+		}
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return false
+		}
+		daysSinceStart := int(date.Sub(startDate).Hours() / 24)
+		cycleLen := freqValue + courseOffDays
+		if cycleLen <= 0 {
+			return true
+		}
+		dayInCycle := daysSinceStart % cycleLen
+		return dayInCycle < freqValue // active phase
+
+	case "prn":
+		return false // on-demand only, never auto-generate
+
+	default:
+		// Unknown type — fallback to daily with day filter
+		if len(days) > 0 && !containsDay(days, dayOfWeek) {
+			return false
+		}
+		return true
+	}
+}
+
+func generateDosesForSchedule(schedID, schedTime string, days []string, freqType string, freqValue, courseOffDays int) {
+	// Look up prescription start_date for this schedule
+	var startDateStr string
+	err := db.QueryRow(`
+		SELECT p.start_date FROM pt_schedules s
+		JOIN pt_prescriptions p ON p.id = s.prescription_id
+		WHERE s.id = ?`, schedID,
+	).Scan(&startDateStr)
+	if err != nil {
+		startDateStr = time.Now().Format("2006-01-02")
 	}
 
-	plannedAt := today + "T" + schedTime + ":00Z"
-	_, err := db.Exec(
-		`INSERT OR IGNORE INTO pt_dose_logs (schedule_id, planned_at) VALUES (?, ?)`,
-		schedID, plannedAt,
-	)
-	if err != nil {
-		log.Printf("generate dose for schedule %s: %v", schedID, err)
+	daysJSON, _ := json.Marshal(days)
+	now := time.Now()
+	for i := 0; i < 8; i++ {
+		date := now.AddDate(0, 0, i)
+		dateStr := date.Format("2006-01-02")
+		dayOfWeek := strings.ToLower(date.Format("Mon"))[:3]
+
+		if !shouldGenerateDose(freqType, freqValue, courseOffDays, string(daysJSON), startDateStr, date, dayOfWeek) {
+			continue
+		}
+
+		if freqType == "every_n_hours" && freqValue > 0 {
+			for h := 0; h < 24; h += freqValue {
+				plannedAt := fmt.Sprintf("%sT%02d:00:00Z", dateStr, h)
+				_, err := db.Exec(`INSERT OR IGNORE INTO pt_dose_logs (schedule_id, planned_at) VALUES (?, ?)`, schedID, plannedAt)
+				if err != nil {
+					log.Printf("generate dose for schedule %s on %s: %v", schedID, dateStr, err)
+				}
+			}
+		} else {
+			plannedAt := dateStr + "T" + schedTime + ":00Z"
+			_, err := db.Exec(`INSERT OR IGNORE INTO pt_dose_logs (schedule_id, planned_at) VALUES (?, ?)`, schedID, plannedAt)
+			if err != nil {
+				log.Printf("generate dose for schedule %s on %s: %v", schedID, dateStr, err)
+			}
+		}
 	}
 }
 

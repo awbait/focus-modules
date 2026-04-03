@@ -1,10 +1,11 @@
 {
   "widget": {
     "today": {
-      "title": "Today's Doses",
+      "title": "Pill Calendar",
       "noPatients": "No patients yet",
       "noDoses": "No doses scheduled",
       "allDone": "All done!",
+      "done": "done",
       "progress": "{{given}}/{{total}}",
       "give": "Give",
       "skip": "Skip",
@@ -18,7 +19,13 @@
       "cancel": "Cancel",
       "confirm": "Confirm",
       "history": "History",
-      "givenBy": "by {{name}}"
+      "givenBy": "by {{name}}",
+      "filter": {
+        "all": "All",
+        "morning": "Morning",
+        "afternoon": "Afternoon",
+        "evening": "Evening"
+      }
     }
   },
   "settings": {
@@ -56,6 +63,7 @@
     "selectPatient": "Select a patient",
     "selectPrescription": "Select a prescription",
     "noMedicationsForType": "No medications for this patient type",
+    "searchMedication": "Search medication...",
     "required": "Required field",
     "active": "Active",
     "paused": "Paused",
@@ -64,7 +72,43 @@
     "everyday": "Every day",
     "everydayHint": "No days selected = every day",
     "linkedUser": "Link to user",
-    "standalonePatient": "Standalone (no link)"
+    "standalonePatient": "Standalone (no link)",
+    "availableUsers": "Add from users",
+    "myPatients": "Patients",
+    "back": "Back",
+    "prescriptionsCount": "Prescriptions ({{count}})",
+    "mealRelation": "Meal relation",
+    "mealMinutes": "Minutes before/after meal",
+    "durationDays": "Course duration (days)",
+    "durationDaysShort": "{{n}}d",
+    "durationPlaceholder": "Leave empty for indefinite",
+    "frequencyType": "Frequency",
+    "frequencyValue": "Interval value",
+    "courseOnDays": "Days on",
+    "courseOffDays": "Days off",
+    "monthDay": "Day of month",
+    "coursePeriod": "Course period",
+    "courseHint": "Set duration OR end date. Leave both empty for indefinite.",
+    "scheduleHint": "After saving, add a schedule with time and frequency from the patient view."
+  },
+  "meal": {
+    "none": "No matter",
+    "before": "Before meal",
+    "during": "During meal",
+    "after": "After meal",
+    "minutes": "{{n}} min",
+    "hours": "{{n}}h"
+  },
+  "frequency": {
+    "daily": "Daily",
+    "every_other_day": "Every other day",
+    "every_n_hours": "Every N hours",
+    "every_n_days": "Every N days",
+    "weekly": "Weekly",
+    "biweekly": "Biweekly",
+    "monthly": "Monthly",
+    "prn": "As needed",
+    "course": "Course"
   },
   "types": {
     "human": "Human",
