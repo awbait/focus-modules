@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS pt_prescriptions (
     status        TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed')),
     start_date    TEXT NOT NULL DEFAULT (date('now')),
     end_date      TEXT,
+    meal_relation TEXT NOT NULL DEFAULT 'none',
+    meal_minutes  INTEGER NOT NULL DEFAULT 30,
+    duration_days INTEGER,
     created_at    DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
@@ -38,6 +41,9 @@ CREATE TABLE IF NOT EXISTS pt_schedules (
     time            TEXT NOT NULL,
     days            TEXT NOT NULL DEFAULT '[]',
     active          INTEGER NOT NULL DEFAULT 1,
+    frequency_type  TEXT NOT NULL DEFAULT 'daily',
+    frequency_value INTEGER NOT NULL DEFAULT 0,
+    course_off_days INTEGER NOT NULL DEFAULT 0,
     created_at      DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 

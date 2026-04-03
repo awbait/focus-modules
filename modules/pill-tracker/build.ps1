@@ -12,13 +12,33 @@ Write-Host "==> Building $ModuleID..."
 if (Test-Path $OutDir) { Remove-Item -Recurse -Force $OutDir }
 New-Item -ItemType Directory -Path $OutDir | Out-Null
 
-# 1. Frontend: bundle TSX -> widget.js
+# 1. Frontend: bundle TSX -> widget.js + settings.js
 Write-Host "  -> Building frontend..."
 Push-Location frontend
 bun install --frozen-lockfile
+
+# 1a. Tailwind CSS
+Write-Host "  -> Compiling Tailwind CSS..."
+$ErrorActionPreference = "Continue"
+bunx @tailwindcss/cli -i src/styles.css -o dist/module.css --minify
+$ErrorActionPreference = "Stop"
+if (-not (Test-Path dist/module.css)) { throw "Tailwind CSS build failed" }
+
+# 1b. JS bundle
 bun run build
 Copy-Item dist/widget.js "../$OutDir/widget.js"
 Copy-Item dist/settings.js "../$OutDir/settings.js"
+
+# 1c. Inject CSS into JS bundles (prepend IIFE with base64-encoded CSS)
+Write-Host "  -> Injecting CSS into bundles..."
+$cssBytes = [System.IO.File]::ReadAllBytes((Resolve-Path "dist/module.css").Path)
+$cssBase64 = [Convert]::ToBase64String($cssBytes)
+$injector = "(function(){var d=document,id='pill-tracker-tw';if(!d.getElementById(id)){var s=d.createElement('style');s.id=id;s.textContent=atob('$cssBase64');d.head.appendChild(s)}})();" + "`n"
+foreach ($f in @("../$OutDir/widget.js", "../$OutDir/settings.js")) {
+    $content = [System.IO.File]::ReadAllText((Resolve-Path $f).Path)
+    [System.IO.File]::WriteAllText((Resolve-Path $f).Path, $injector + $content)
+}
+
 Pop-Location
 
 # 2. Backend: compile Go binary (static, Linux amd64)

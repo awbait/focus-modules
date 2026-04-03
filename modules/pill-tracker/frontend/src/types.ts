@@ -5,6 +5,15 @@ export type {
   WidgetProps,
 } from '@focus-dashboard/sdk-types'
 
+// Types available at runtime but not yet in published sdk-types
+export interface FocusPublicUser {
+  id: string
+  name: string
+  display_name?: string
+  username?: string
+  avatar: string
+}
+
 // ---------------------------------------------------------------------------
 // Module-specific types
 // ---------------------------------------------------------------------------
@@ -13,6 +22,17 @@ export type PatientType = 'human' | 'animal'
 export type MedicationForm = 'tablet' | 'drops' | 'injection' | 'ointment'
 export type DoseStatus = 'pending' | 'given' | 'skipped' | 'overdue'
 export type PrescriptionStatus = 'active' | 'paused' | 'completed'
+export type MealRelation = 'none' | 'before' | 'during' | 'after'
+export type FrequencyType =
+  | 'daily'
+  | 'every_other_day'
+  | 'every_n_hours'
+  | 'every_n_days'
+  | 'weekly'
+  | 'biweekly'
+  | 'monthly'
+  | 'prn'
+  | 'course'
 
 export interface Patient {
   id: string
@@ -41,6 +61,9 @@ export interface Prescription {
   status: PrescriptionStatus
   start_date: string
   end_date: string | null
+  meal_relation: MealRelation
+  meal_minutes: number
+  duration_days: number | null
   created_at: string
 }
 
@@ -50,6 +73,9 @@ export interface Schedule {
   time: string
   days: string[]
   active: boolean
+  frequency_type: FrequencyType
+  frequency_value: number
+  course_off_days: number
   created_at: string
 }
 

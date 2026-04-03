@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { createElement, useCallback, useEffect, useState } from 'react'
+import { createContext, createElement, useCallback, useContext, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
 // ---------------------------------------------------------------------------
@@ -56,6 +56,14 @@ export interface FocusInstance {
    * - `'admin'` → owner only
    */
   can(action: FocusAction): Promise<boolean>
+
+  /**
+   * Return a container element for portals (Radix, React createPortal, etc.).
+   * When the widget runs inside a host Dialog, portals should render
+   * into this container so that clicks are not detected as "outside".
+   * Returns `null` when no container is available (standalone context).
+   */
+  getPortalContainer(): HTMLElement | null
 }
 
 /** Global SDK object exposed as `window.FocusSDK`. */
@@ -119,6 +127,34 @@ export class ReactWidgetElement extends HTMLElement {
 }
 
 // ---------------------------------------------------------------------------
+// PortalContainerContext — Radix portal target for nested dialogs
+// ---------------------------------------------------------------------------
+
+/**
+ * React Context that holds a container element for portals.
+ *
+ * When a module widget renders inside a host Dialog (e.g. settings panel),
+ * portals must render into a container that lives inside the host Dialog
+ * DOM — otherwise clicks are detected as "outside" and close the host.
+ *
+ * Works with Radix (`container` prop), React `createPortal`, or any
+ * library that accepts a portal target element.
+ *
+ * The SDK sets this automatically via `registerWidget`. Module components
+ * read it via `usePortalContainer()`.
+ */
+export const PortalContainerContext = createContext<HTMLElement | null>(null)
+
+/**
+ * Return the portal container element from context, or `null` if none.
+ * Use in any component that renders a portal (Radix, createPortal, etc.)
+ * to redirect content into the correct DOM subtree.
+ */
+export function usePortalContainer(): HTMLElement | null {
+  return useContext(PortalContainerContext)
+}
+
+// ---------------------------------------------------------------------------
 // registerWidget — one-line widget registration
 // ---------------------------------------------------------------------------
 
@@ -126,6 +162,7 @@ export class ReactWidgetElement extends HTMLElement {
  * Register a React component as a custom element widget.
  *
  * Handles FocusSDK initialization, React root creation, and cleanup.
+ * Automatically wraps the component in `PortalContainerContext.Provider`.
  *
  * ```ts
  * registerWidget('my-module-counter', CounterApp)
@@ -136,8 +173,15 @@ export function registerWidget(tagName: string, Component: (props: WidgetProps) 
   const Cls = class extends ReactWidgetElement {
     connectedCallback() {
       const focus = (window as any).FocusSDK.create(this)
+      const container = focus.getPortalContainer?.() ?? null
       this._root = createRoot(this)
-      this._root.render(createElement(Component, { focus }))
+      this._root.render(
+        createElement(
+          PortalContainerContext.Provider,
+          { value: container },
+          createElement(Component, { focus }),
+        ),
+      )
     }
   }
   customElements.define(tagName, Cls)

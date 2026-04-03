@@ -13,13 +13,28 @@ echo "==> Building $MODULE_ID..."
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
-# 1. Frontend: bundle TSX → widget.js
+# 1. Frontend: bundle TSX → widget.js + settings.js
 echo "  -> Building frontend..."
 cd frontend
 bun install --frozen-lockfile
+
+# 1a. Tailwind CSS
+echo "  -> Compiling Tailwind CSS..."
+bunx @tailwindcss/cli -i src/styles.css -o dist/module.css --minify
+
+# 1b. JS bundle
 bun run build
 cp dist/widget.js "../$OUT_DIR/widget.js"
 cp dist/settings.js "../$OUT_DIR/settings.js"
+
+# 1c. Inject CSS into JS bundles (prepend IIFE with base64-encoded CSS)
+echo "  -> Injecting CSS into bundles..."
+CSS_BASE64=$(base64 -w0 dist/module.css)
+INJECTOR="(function(){var d=document,id='pill-tracker-tw';if(!d.getElementById(id)){var s=d.createElement('style');s.id=id;s.textContent=atob('${CSS_BASE64}');d.head.appendChild(s)}})();"
+for f in "../$OUT_DIR/widget.js" "../$OUT_DIR/settings.js"; do
+    printf '%s\n' "$INJECTOR" | cat - "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+done
+
 cd ..
 
 # 2. Backend: compile Go binary (static, Linux amd64)
