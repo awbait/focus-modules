@@ -53,7 +53,7 @@ import {
   SelectValue,
 } from './components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs'
-import { getDateFnsFormat, getDateFnsShortFormat } from './lib/format-utils'
+import { formatTime, getDateFnsFormat, getDateFnsShortFormat } from './lib/format-utils'
 import { cn } from './lib/utils'
 import type {
   FocusPublicUser,
@@ -574,7 +574,7 @@ function PatientDetailView({
                           size={12}
                           className="text-muted-foreground shrink-0"
                         />
-                        <span className="font-medium">{s.time}</span>
+                        <span className="font-medium">{formatTime(s.time, focus)}</span>
                         <span className="text-muted-foreground truncate">
                           {frequencyLabel(s, t)}
                         </span>
