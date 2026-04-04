@@ -234,7 +234,7 @@ function DayToggle({
           type="button"
           onClick={() => toggle(d)}
           className={cn(
-            'h-7 min-w-[32px] rounded-md px-1.5 text-xs font-medium transition-colors cursor-pointer',
+            'h-7 min-w-8 rounded-md px-1.5 text-xs font-medium transition-colors cursor-pointer',
             days.includes(d)
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted/60 text-muted-foreground hover:bg-muted',
@@ -496,7 +496,7 @@ function PatientDetailView({
       {prescriptions.length === 0 ? (
         <EmptyState text={t('settings.noItems')} />
       ) : (
-        <div className="max-h-[400px] overflow-y-auto overflow-x-hidden pr-1 styled-scroll">
+        <div className="max-h-100 overflow-y-auto overflow-x-hidden pr-1 styled-scroll">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {prescriptions.map((p) => {
               const med = medications.find((m) => m.id === p.medication_id)
@@ -1331,7 +1331,6 @@ function AddPrescriptionDialog({
     setDurationDays('')
     setStartDate(todayLocal())
     setEndDate('')
-    setError('')
     setStep(2)
   }
 
@@ -1388,7 +1387,7 @@ function AddPrescriptionDialog({
               <div
                 className={cn(
                   'grid grid-cols-1 sm:grid-cols-2 gap-2',
-                  filteredMeds.length > 6 && 'max-h-[320px] overflow-y-auto pr-1',
+                  filteredMeds.length > 6 && 'max-h-80 overflow-y-auto pr-1',
                 )}
               >
                 {searchedMeds.map((m) => {
@@ -1581,7 +1580,7 @@ function AddScheduleDialog({
                   setError('')
                 }}
               >
-                <SelectTrigger className="w-[80px]">
+                <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1600,7 +1599,7 @@ function AddScheduleDialog({
                   setError('')
                 }}
               >
-                <SelectTrigger className="w-[80px]">
+                <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

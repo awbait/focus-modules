@@ -92,6 +92,8 @@ export interface DoseEntry {
   medication_form: MedicationForm
   dosage: string
   patient_id: string
+  meal_relation: MealRelation
+  meal_minutes: number
 }
 
 export interface TodayResponse {

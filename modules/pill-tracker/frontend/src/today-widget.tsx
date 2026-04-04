@@ -4,17 +4,15 @@ const { useState, useEffect, useRef, useCallback, useMemo } = React
 
 import { registerWidget, usePermission } from '@focus-dashboard/sdk-types'
 import {
-  AlertTriangle,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  SkipForward,
-  X,
-} from 'lucide-react'
+  DropletIcon,
+  InjectionIcon,
+  MedicineBottleIcon,
+  PillIcon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { Check, ChevronLeft, ChevronRight, Clock, SkipForward, X } from 'lucide-react'
 import { Badge } from './components/ui/badge'
 import { Button } from './components/ui/button'
-import { Checkbox } from './components/ui/checkbox'
 import { Progress } from './components/ui/progress'
 import { ScrollArea } from './components/ui/scroll-area'
 import {
@@ -29,6 +27,7 @@ import { cn } from './lib/utils'
 import type {
   DoseEntry,
   FocusInstance,
+  MedicationForm,
   Patient,
   TodayResponse,
   WidgetProps,
@@ -105,46 +104,141 @@ function matchesTimeFilter(dose: DoseEntry, filter: TimeFilter): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Status helpers
+// Form icon helper
 // ---------------------------------------------------------------------------
 
-function statusIcon(status: string) {
-  switch (status) {
-    case 'given':
-      return <Check className="size-3.5" />
-    case 'skipped':
-      return <SkipForward className="size-3.5" />
-    case 'overdue':
-      return <AlertTriangle className="size-3.5" />
-    default:
-      return <Clock className="size-3.5" />
-  }
+const FORM_ICON_MAP: Record<MedicationForm, typeof PillIcon> = {
+  tablet: PillIcon,
+  drops: DropletIcon,
+  injection: InjectionIcon,
+  ointment: MedicineBottleIcon,
 }
 
-function statusColor(status: string) {
-  switch (status) {
-    case 'given':
-      return 'text-emerald-600 dark:text-emerald-400'
-    case 'skipped':
-      return 'text-muted-foreground'
-    case 'overdue':
-      return 'text-destructive'
-    default:
-      return 'text-primary'
-  }
+function formIcon(form: MedicationForm) {
+  return FORM_ICON_MAP[form] ?? PillIcon
 }
 
-function statusDotColor(status: string) {
-  switch (status) {
-    case 'given':
-      return 'bg-emerald-500'
-    case 'skipped':
-      return 'bg-muted-foreground/50'
-    case 'overdue':
-      return 'bg-destructive'
-    default:
-      return 'bg-primary'
+// ---------------------------------------------------------------------------
+// Meal relation helper
+// ---------------------------------------------------------------------------
+
+type TFn = (key: string, vars?: Record<string, string | number>) => string
+
+function doseMealLabel(dose: DoseEntry, t: TFn): string | null {
+  if (!dose.meal_relation || dose.meal_relation === 'none') return null
+  const label = t(`meal.${dose.meal_relation}`)
+  if (dose.meal_minutes > 0) {
+    return `${label} (${t('meal.minutes', { n: dose.meal_minutes })})`
   }
+  return label
+}
+
+// ---------------------------------------------------------------------------
+// Avatar
+// ---------------------------------------------------------------------------
+
+function isEmoji(s: string) {
+  return s.length <= 4 && !/[/.]/.test(s)
+}
+
+function PatientAvatar({ src, className }: { src?: string; className?: string }) {
+  const [failed, setFailed] = useState(false)
+
+  if (src && !isEmoji(src) && !failed) {
+    return (
+      <img
+        src={src}
+        alt=""
+        onError={() => setFailed(true)}
+        className={cn('rounded-full object-cover shrink-0', className)}
+      />
+    )
+  }
+  if (src && isEmoji(src)) {
+    return <span className="shrink-0">{src}</span>
+  }
+  return null
+}
+
+// ---------------------------------------------------------------------------
+// DoseActionCircle — action button on the right side of dose card
+// ---------------------------------------------------------------------------
+
+function DoseActionCircle({
+  dose,
+  canWrite,
+  onGive,
+  onUngive,
+  onStartSkip,
+}: {
+  dose: DoseEntry
+  canWrite: boolean
+  onGive: () => void
+  onUngive: () => void
+  onStartSkip: () => void
+}) {
+  const isPending = dose.status === 'pending' || dose.status === 'overdue'
+
+  if (dose.status === 'given') {
+    if (canWrite) {
+      return (
+        <button
+          type="button"
+          onClick={onUngive}
+          className="flex items-center justify-center size-7 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0 hover:bg-emerald-500/25 transition-colors"
+        >
+          <Check className="size-3.5" />
+        </button>
+      )
+    }
+    return (
+      <span className="flex items-center justify-center size-7 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+        <Check className="size-3.5" />
+      </span>
+    )
+  }
+
+  if (dose.status === 'skipped') {
+    return (
+      <span className="flex items-center justify-center size-7 rounded-full bg-muted text-muted-foreground shrink-0">
+        <SkipForward className="size-3.5" />
+      </span>
+    )
+  }
+
+  // pending or overdue
+  return (
+    <div className="flex items-center gap-1 shrink-0">
+      {canWrite && isPending && (
+        <button
+          type="button"
+          onClick={onStartSkip}
+          className="flex items-center justify-center size-6 rounded-full text-muted-foreground hover:bg-muted transition-colors"
+          title="Skip"
+        >
+          <X className="size-3" />
+        </button>
+      )}
+      {canWrite && isPending ? (
+        <button
+          type="button"
+          onClick={onGive}
+          className={cn(
+            'flex items-center justify-center size-7 rounded-full border-2 transition-all shrink-0',
+            'border-primary/30 hover:border-primary hover:bg-primary/5',
+            dose.status === 'overdue' &&
+              'ring-2 ring-destructive/30 animate-pulse border-destructive/50',
+          )}
+        >
+          <span className="size-2 rounded-full bg-primary/20" />
+        </button>
+      ) : (
+        <span className="flex items-center justify-center size-7 rounded-full border-2 border-border shrink-0">
+          <Clock className="size-3.5 text-muted-foreground" />
+        </span>
+      )}
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -252,6 +346,13 @@ function PillCalendar({ focus }: WidgetProps) {
     [focus, loadDoses],
   )
 
+  const handleUngive = useCallback(
+    (id: string) => {
+      focus.api('POST', `/doses/${id}/ungive`).then(() => loadDoses())
+    },
+    [focus, loadDoses],
+  )
+
   const handleSkip = useCallback(
     (id: string, reason: string) => {
       focus.api('POST', `/doses/${id}/skip`, { reason }).then(() => {
@@ -315,20 +416,24 @@ function PillCalendar({ focus }: WidgetProps) {
         <div className="flex items-center gap-2 min-w-0">
           {patients.length > 1 ? (
             <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
-              <SelectTrigger className="h-7 text-xs px-2 w-auto max-w-[160px]">
+              <SelectTrigger className="h-7 text-xs px-2 w-auto max-w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {patients.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    <span className="mr-1">{p.avatar}</span> {p.name}
+                    <span className="flex items-center gap-1.5">
+                      <PatientAvatar src={p.avatar} className="size-4" />
+                      {p.name}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           ) : (
-            <span className="text-sm font-medium truncate">
-              {selectedPatient?.avatar} {selectedPatient?.name}
+            <span className="flex items-center gap-1.5 text-sm font-medium truncate">
+              <PatientAvatar src={selectedPatient?.avatar} className="size-5" />
+              {selectedPatient?.name}
             </span>
           )}
         </div>
@@ -342,7 +447,7 @@ function PillCalendar({ focus }: WidgetProps) {
         <Button variant="ghost" size="icon-xs" onClick={prevWeek} className="shrink-0">
           <ChevronLeft className="size-3.5" />
         </Button>
-        <div className="flex flex-1 gap-0.5 justify-center">
+        <div className="flex flex-1 gap-0.5 justify-center min-w-0">
           {weekDays.map((day, i) => {
             const isToday = isSameDay(day, today)
             const isSelected = isSameDay(day, selectedDate)
@@ -352,7 +457,7 @@ function PillCalendar({ focus }: WidgetProps) {
                 key={i}
                 onClick={() => setSelectedDate(day)}
                 className={cn(
-                  'flex flex-col items-center rounded-lg px-1.5 py-1 text-xs transition-colors min-w-[32px]',
+                  'flex flex-1 flex-col items-center rounded-lg px-0.5 py-1 text-xs transition-colors min-w-0',
                   isSelected && isToday && 'bg-primary text-primary-foreground',
                   isSelected && !isToday && 'bg-muted text-foreground ring-1 ring-border',
                   !isSelected && isToday && 'text-primary font-semibold',
@@ -397,7 +502,7 @@ function PillCalendar({ focus }: WidgetProps) {
 
       {/* Dose List */}
       <ScrollArea className="flex-1 -mx-1">
-        <div className="flex flex-col gap-1 px-1">
+        <div className="flex flex-col gap-1.5 px-1">
           {filteredDoses.length === 0 ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
               {total === 0 ? t('widget.today.noDoses') : t('widget.today.allDone')}
@@ -407,101 +512,116 @@ function PillCalendar({ focus }: WidgetProps) {
               const isPending = dose.status === 'pending' || dose.status === 'overdue'
               const isGiven = dose.status === 'given'
               const isSkipped = dose.status === 'skipped'
+              const isDone = isGiven || isSkipped
               const isFirstPending = isPending && !firstPendingFound
               if (isFirstPending) firstPendingFound = true
               const isSkipping = skipId === dose.id
+              const mealLabel = doseMealLabel(dose, t)
+              const time = dose.planned_at.slice(11, 16)
 
               return (
                 <div
                   key={dose.id}
                   ref={isFirstPending ? firstPendingRef : undefined}
                   className={cn(
-                    'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors',
-                    dose.status === 'overdue' && 'bg-destructive/5',
-                    isGiven && 'opacity-60',
+                    'flex items-center gap-2.5 rounded-xl border px-3 py-2 text-sm transition-colors',
+                    dose.status === 'overdue' && 'bg-destructive/5 border-destructive/20',
+                    isDone && 'opacity-50',
+                    !isDone && dose.status !== 'overdue' && 'border-border',
                   )}
                 >
-                  {/* Checkbox / Status */}
-                  {canWrite && isPending ? (
-                    <Checkbox
-                      checked={false}
-                      onCheckedChange={() => handleGive(dose.id)}
-                      className="shrink-0"
-                    />
-                  ) : (
-                    <span className={cn('shrink-0', statusColor(dose.status))}>
-                      {statusIcon(dose.status)}
-                    </span>
-                  )}
+                  {/* Form icon */}
+                  <span
+                    className={cn(
+                      'flex items-center justify-center rounded-lg shrink-0 size-8',
+                      isDone ? 'bg-muted text-muted-foreground' : 'bg-primary/8 text-primary',
+                    )}
+                  >
+                    <HugeiconsIcon icon={formIcon(dose.medication_form)} size={16} />
+                  </span>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div
+                    <span
                       className={cn(
-                        'font-medium text-sm truncate',
+                        'font-medium text-sm truncate block',
                         isGiven && 'line-through',
                         isSkipped && 'line-through text-muted-foreground',
                       )}
                     >
                       {dose.medication_name}
+                    </span>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                      {dose.status === 'overdue' ? (
+                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                          {time}
+                        </Badge>
+                      ) : (
+                        <span>{time}</span>
+                      )}
+                      {dose.dosage && (
+                        <>
+                          <span className="text-muted-foreground/40">·</span>
+                          <span>{dose.dosage}</span>
+                        </>
+                      )}
+                      {mealLabel && (
+                        <>
+                          <span className="text-muted-foreground/40">·</span>
+                          <span>{mealLabel}</span>
+                        </>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>{dose.dosage}</span>
-                      <span
-                        className={cn('size-1 rounded-full shrink-0', statusDotColor(dose.status))}
-                      />
-                      <span>{dose.planned_at.slice(11, 16)}</span>
-                    </div>
+                    {isSkipped && dose.skip_reason && (
+                      <div className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
+                        {dose.skip_reason}
+                      </div>
+                    )}
+                    {isGiven && dose.given_by_name && (
+                      <div className="text-[10px] text-muted-foreground/70 mt-0.5">
+                        {t('widget.today.givenBy', { name: dose.given_by_name })}
+                      </div>
+                    )}
+                    {/* Inline skip input */}
+                    {isSkipping && (
+                      <div className="flex items-center gap-1 mt-1.5">
+                        <input
+                          className="h-6 flex-1 rounded border border-input bg-input/30 px-1.5 text-xs outline-none"
+                          placeholder={t('widget.today.skipReason')}
+                          value={skipReason}
+                          onChange={(e) => setSkipReason(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSkip(dose.id, skipReason)}
+                        />
+                        <Button
+                          size="icon-xs"
+                          variant="ghost"
+                          onClick={() => handleSkip(dose.id, skipReason)}
+                        >
+                          <Check className="size-3" />
+                        </Button>
+                        <Button
+                          size="icon-xs"
+                          variant="ghost"
+                          onClick={() => {
+                            setSkipId(null)
+                            setSkipReason('')
+                          }}
+                        >
+                          <X className="size-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Actions */}
-                  {canWrite && isPending && !isSkipping && (
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => setSkipId(dose.id)}
-                      className="shrink-0 text-muted-foreground"
-                      title={t('widget.today.skip')}
-                    >
-                      <X className="size-3" />
-                    </Button>
-                  )}
-
-                  {/* Skip reason input */}
-                  {isSkipping && (
-                    <div className="flex items-center gap-1">
-                      <input
-                        className="h-6 w-20 rounded border border-input bg-input/30 px-1.5 text-xs outline-none"
-                        placeholder={t('widget.today.skipReason')}
-                        value={skipReason}
-                        onChange={(e) => setSkipReason(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSkip(dose.id, skipReason)}
-                      />
-                      <Button
-                        size="icon-xs"
-                        variant="ghost"
-                        onClick={() => handleSkip(dose.id, skipReason)}
-                      >
-                        <Check className="size-3" />
-                      </Button>
-                      <Button
-                        size="icon-xs"
-                        variant="ghost"
-                        onClick={() => {
-                          setSkipId(null)
-                          setSkipReason('')
-                        }}
-                      >
-                        <X className="size-3" />
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Given info */}
-                  {isGiven && dose.given_by_name && (
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      {t('widget.today.givenBy', { name: dose.given_by_name })}
-                    </span>
+                  {/* Action circle */}
+                  {!isSkipping && (
+                    <DoseActionCircle
+                      dose={dose}
+                      canWrite={canWrite}
+                      onGive={() => handleGive(dose.id)}
+                      onUngive={() => handleUngive(dose.id)}
+                      onStartSkip={() => setSkipId(dose.id)}
+                    />
                   )}
                 </div>
               )

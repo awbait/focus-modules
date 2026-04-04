@@ -7,6 +7,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "rootDir": "src",
     "outDir": "dist",
     "declaration": false,
     "types": ["@focus-dashboard/sdk-types/globals", "react", "react-dom"]
