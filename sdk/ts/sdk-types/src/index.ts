@@ -64,6 +64,12 @@ export interface FocusInstance {
    * Returns `null` when no container is available (standalone context).
    */
   getPortalContainer(): HTMLElement | null
+
+  /**
+   * Return dashboard-level configuration (timezone, date/time format, language).
+   * Pre-loaded at startup — returns cached values synchronously.
+   */
+  getDashboardConfig(): DashboardConfig
 }
 
 /** Global SDK object exposed as `window.FocusSDK`. */
@@ -92,6 +98,18 @@ export interface FocusPublicUser {
 
 /** Predefined permission levels mapped to role hierarchy. */
 export type FocusAction = 'read' | 'write' | 'admin'
+
+/** Dashboard-level configuration passed to modules via SDK. */
+export interface DashboardConfig {
+  /** IANA timezone, e.g. "Europe/Moscow" */
+  timezone: string
+  /** Date display format, e.g. "DD.MM.YYYY", "MM/DD/YYYY", "YYYY-MM-DD" */
+  dateFormat: string
+  /** Time display format: "24h" or "12h" */
+  timeFormat: string
+  /** Dashboard UI language, e.g. "ru", "en" */
+  language: string
+}
 
 // ---------------------------------------------------------------------------
 // Widget helpers
