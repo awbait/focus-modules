@@ -53,6 +53,7 @@ import {
   SelectValue,
 } from './components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs'
+import { getDateFnsFormat, getDateFnsShortFormat } from './lib/format-utils'
 import { cn } from './lib/utils'
 import type {
   FocusPublicUser,
@@ -538,7 +539,10 @@ function PatientDetailView({
                           {t(`settings.${p.status}`)}
                         </Badge>
                         <span className="inline-flex items-center gap-1">
-                          {format(parseISO(p.start_date), 'dd.MM.yy')}
+                          {format(
+                            parseISO(p.start_date),
+                            getDateFnsShortFormat(focus.getDashboardConfig().dateFormat),
+                          )}
                           {p.end_date && (
                             <>
                               <HugeiconsIcon
@@ -546,7 +550,10 @@ function PatientDetailView({
                                 size={12}
                                 className="text-muted-foreground"
                               />
-                              {format(parseISO(p.end_date), 'dd.MM.yy')}
+                              {format(
+                                parseISO(p.end_date),
+                                getDateFnsShortFormat(focus.getDashboardConfig().dateFormat),
+                              )}
                             </>
                           )}
                         </span>
@@ -1473,10 +1480,19 @@ function AddPrescriptionDialog({
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <Field label={t('settings.startDate')}>
-                  <DateInput value={startDate} onChange={setStartDate} />
+                  <DateInput
+                    value={startDate}
+                    onChange={setStartDate}
+                    displayFormat={getDateFnsFormat(focus.getDashboardConfig().dateFormat)}
+                  />
                 </Field>
                 <Field label={t('settings.endDate')}>
-                  <DateInput value={endDate} onChange={setEndDate} clearable />
+                  <DateInput
+                    value={endDate}
+                    onChange={setEndDate}
+                    clearable
+                    displayFormat={getDateFnsFormat(focus.getDashboardConfig().dateFormat)}
+                  />
                 </Field>
               </div>
               <Field label={t('settings.durationDays')}>
