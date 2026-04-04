@@ -65,6 +65,7 @@ func main() {
 		// Doses
 		a.Mux.HandleFunc("GET /today", handleToday)
 		a.Mux.HandleFunc("POST /doses/{id}/give", handleGiveDose)
+		a.Mux.HandleFunc("POST /doses/{id}/ungive", handleUngiveDose)
 		a.Mux.HandleFunc("POST /doses/{id}/skip", handleSkipDose)
 		a.Mux.HandleFunc("GET /history", handleHistory)
 
@@ -755,6 +756,8 @@ type doseEntry struct {
 	MedicationForm string  `json:"medication_form"`
 	Dosage         string  `json:"dosage"`
 	PatientID      string  `json:"patient_id"`
+	MealRelation   string  `json:"meal_relation"`
+	MealMinutes    int     `json:"meal_minutes"`
 }
 
 type todayResponse struct {
@@ -791,7 +794,8 @@ func handleToday(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(`
 		SELECT dl.id, dl.schedule_id, dl.planned_at, dl.given_at, dl.given_by, dl.given_by_name,
 		       dl.status, dl.skip_reason,
-		       m.name, m.form, p.dosage, p.patient_id
+		       m.name, m.form, p.dosage, p.patient_id,
+		       p.meal_relation, p.meal_minutes
 		FROM pt_dose_logs dl
 		JOIN pt_schedules s ON s.id = dl.schedule_id
 		JOIN pt_prescriptions p ON p.id = s.prescription_id
@@ -810,7 +814,8 @@ func handleToday(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var d doseEntry
 		if err := rows.Scan(&d.ID, &d.ScheduleID, &d.PlannedAt, &d.GivenAt, &d.GivenBy, &d.GivenByName,
-			&d.Status, &d.SkipReason, &d.MedicationName, &d.MedicationForm, &d.Dosage, &d.PatientID); err != nil {
+			&d.Status, &d.SkipReason, &d.MedicationName, &d.MedicationForm, &d.Dosage, &d.PatientID,
+			&d.MealRelation, &d.MealMinutes); err != nil {
 			fm.InternalError(w, "scan dose", err)
 			return
 		}
@@ -867,6 +872,43 @@ func handleGiveDose(w http.ResponseWriter, r *http.Request) {
 	fm.JSON(w, map[string]string{"status": "ok"})
 }
 
+func handleUngiveDose(w http.ResponseWriter, r *http.Request) {
+	if !fm.RequireRole(w, r, fm.RoleResident) {
+		return
+	}
+	id := r.PathValue("id")
+
+	// Revert status back; compute will set overdue if needed
+	res, err := db.Exec(
+		`UPDATE pt_dose_logs SET status = 'pending', given_at = NULL, given_by = NULL, given_by_name = NULL WHERE id = ? AND status = 'given'`,
+		id,
+	)
+	if err != nil {
+		fm.InternalError(w, "ungive dose", err)
+		return
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		fm.HTTPError(w, 404, "dose not found or not given")
+		return
+	}
+
+	var medName, patientID string
+	_ = db.QueryRow(`
+		SELECT m.name, p.patient_id FROM pt_dose_logs dl
+		JOIN pt_schedules s ON s.id = dl.schedule_id
+		JOIN pt_prescriptions p ON p.id = s.prescription_id
+		JOIN pt_medications m ON m.id = p.medication_id
+		WHERE dl.id = ?`, id,
+	).Scan(&medName, &patientID)
+
+	app.Broadcast("dose.given", map[string]any{
+		"dose_id":    id,
+		"patient_id": patientID,
+		"ungiven":    true,
+	})
+	fm.JSON(w, map[string]string{"status": "ok"})
+}
+
 func handleSkipDose(w http.ResponseWriter, r *http.Request) {
 	if !fm.RequireRole(w, r, fm.RoleResident) {
 		return
@@ -913,7 +955,8 @@ func handleHistory(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(`
 		SELECT dl.id, dl.schedule_id, dl.planned_at, dl.given_at, dl.given_by, dl.given_by_name,
 		       dl.status, dl.skip_reason,
-		       m.name, m.form, p.dosage, p.patient_id
+		       m.name, m.form, p.dosage, p.patient_id,
+		       p.meal_relation, p.meal_minutes
 		FROM pt_dose_logs dl
 		JOIN pt_schedules s ON s.id = dl.schedule_id
 		JOIN pt_prescriptions p ON p.id = s.prescription_id
@@ -932,7 +975,8 @@ func handleHistory(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var d doseEntry
 		if err := rows.Scan(&d.ID, &d.ScheduleID, &d.PlannedAt, &d.GivenAt, &d.GivenBy, &d.GivenByName,
-			&d.Status, &d.SkipReason, &d.MedicationName, &d.MedicationForm, &d.Dosage, &d.PatientID); err != nil {
+			&d.Status, &d.SkipReason, &d.MedicationName, &d.MedicationForm, &d.Dosage, &d.PatientID,
+			&d.MealRelation, &d.MealMinutes); err != nil {
 			fm.InternalError(w, "scan history", err)
 			return
 		}
