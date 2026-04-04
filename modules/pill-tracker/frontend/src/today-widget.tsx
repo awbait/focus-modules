@@ -416,7 +416,7 @@ function PillCalendar({ focus }: WidgetProps) {
         <div className="flex items-center gap-2 min-w-0">
           {patients.length > 1 ? (
             <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
-              <SelectTrigger className="h-7 text-xs px-2 w-auto max-w-[160px]">
+              <SelectTrigger className="h-7 text-xs px-2 w-auto max-w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
