@@ -13,6 +13,8 @@ interface DateInputProps {
   placeholder?: string
   className?: string
   clearable?: boolean
+  /** date-fns display format, e.g. "dd.MM.yyyy". Defaults to "dd.MM.yyyy". */
+  displayFormat?: string
 }
 
 /** Format Date → YYYY-MM-DD string */
@@ -30,7 +32,14 @@ function parseDate(s: string): Date | undefined {
   return parse(s, 'yyyy-MM-dd', new Date())
 }
 
-function DateInput({ value, onChange, placeholder, className, clearable }: DateInputProps) {
+function DateInput({
+  value,
+  onChange,
+  placeholder,
+  className,
+  clearable,
+  displayFormat = 'dd.MM.yyyy',
+}: DateInputProps) {
   const [open, setOpen] = React.useState(false)
   const selected = parseDate(value)
 
@@ -47,7 +56,7 @@ function DateInput({ value, onChange, placeholder, className, clearable }: DateI
             )}
           >
             <CalendarIcon className="size-4 mr-2 shrink-0" />
-            {selected ? format(selected, 'dd.MM.yyyy') : placeholder || 'дд.мм.гггг'}
+            {selected ? format(selected, displayFormat) : placeholder || 'дд.мм.гггг'}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">

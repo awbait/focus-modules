@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from './components/ui/select'
 import { Separator } from './components/ui/separator'
+import { formatTime, nowInTimezone } from './lib/format-utils'
 import { cn } from './lib/utils'
 import type {
   DoseEntry,
@@ -256,8 +257,8 @@ function PillCalendar({ focus }: WidgetProps) {
   const [given, setGiven] = useState(0)
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [weekBase, setWeekBase] = useState(() => new Date())
-  const [selectedDate, setSelectedDate] = useState(() => new Date())
+  const [weekBase, setWeekBase] = useState(() => nowInTimezone(focus))
+  const [selectedDate, setSelectedDate] = useState(() => nowInTimezone(focus))
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
   const [skipId, setSkipId] = useState<string | null>(null)
   const [skipReason, setSkipReason] = useState('')
@@ -265,7 +266,7 @@ function PillCalendar({ focus }: WidgetProps) {
 
   const containerRef = useRef<HTMLDivElement>(null)
   const firstPendingRef = useRef<HTMLDivElement>(null)
-  const today = useMemo(() => new Date(), [])
+  const today = useMemo(() => nowInTimezone(focus), [])
   const weekDays = useMemo(() => getWeekDays(weekBase), [weekBase])
 
   // Observe container width for responsive
@@ -517,7 +518,7 @@ function PillCalendar({ focus }: WidgetProps) {
               if (isFirstPending) firstPendingFound = true
               const isSkipping = skipId === dose.id
               const mealLabel = doseMealLabel(dose, t)
-              const time = dose.planned_at.slice(11, 16)
+              const time = formatTime(dose.planned_at, focus)
 
               return (
                 <div

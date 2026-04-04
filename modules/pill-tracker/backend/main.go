@@ -425,7 +425,7 @@ func handleCreatePrescription(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if req.StartDate == "" {
-		req.StartDate = time.Now().Format("2006-01-02")
+		req.StartDate = time.Now().Format("2006-01-02") // UTC fallback; frontend should always provide date
 	}
 	if req.MealRelation == "" {
 		req.MealRelation = "none"
@@ -773,7 +773,13 @@ func handleToday(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	targetDate := time.Now().Format("2006-01-02")
+	now := time.Now()
+	if tz := r.URL.Query().Get("tz"); tz != "" {
+		if loc, err := time.LoadLocation(tz); err == nil {
+			now = now.In(loc)
+		}
+	}
+	targetDate := now.Format("2006-01-02")
 	if d := r.URL.Query().Get("date"); d != "" {
 		parsed, err := time.Parse("2006-01-02", d)
 		if err != nil {
