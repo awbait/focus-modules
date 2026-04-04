@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-04
+
+### Added
+- `DashboardConfig` интерфейс — настройки дашборда (timezone, dateFormat, timeFormat, language)
+- `getDashboardConfig()` метод в `FocusInstance` — синхронный доступ к глобальным настройкам дашборда
+
 ## [0.9.0] - 2026-04-03
 
 ### Added
