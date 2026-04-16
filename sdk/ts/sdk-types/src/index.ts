@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { ComponentType, CSSProperties } from 'react'
 import { createContext, createElement, useCallback, useContext, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
@@ -124,6 +124,68 @@ export interface WidgetProps {
 export type Styles = Record<string, CSSProperties>
 
 // ---------------------------------------------------------------------------
+// FocusModuleApi — setup(api) entry point contract
+// ---------------------------------------------------------------------------
+
+/**
+ * API passed to the module's `setup(api)` function.
+ *
+ * A module registers its capabilities by calling methods on this object.
+ * All registrations are lazy — loaders are invoked by the host on demand.
+ *
+ * ```ts
+ * // src/index.ts
+ * import type { FocusModuleApi } from '@focus-dashboard/sdk-types'
+ *
+ * export function setup(api: FocusModuleApi) {
+ *   api.registerWidget(() => import('./widget'), { defaultSize: [2, 2] })
+ *   api.registerSettings(() => import('./settings'))
+ *   api.registerPage(() => import('./page'))
+ * }
+ * ```
+ */
+export interface FocusModuleApi {
+  /**
+   * Register a widget for the dashboard grid.
+   *
+   * Lazy — the loader is called when the host renders a grid cell.
+   * The resolved module must have a React component as `default` export.
+   */
+  registerWidget(
+    loader: () => Promise<{ default: ComponentType<any> }>,
+    opts?: { defaultSize?: [number, number] },
+  ): void
+
+  /**
+   * Register a settings panel shown in the admin dialog.
+   *
+   * Lazy — the loader is called when the user opens module settings.
+   * The resolved module must have a React component as `default` export.
+   */
+  registerSettings(loader: () => Promise<{ default: ComponentType<any> }>): void
+
+  /**
+   * Register a full-screen page accessible at `/m/:moduleId`.
+   *
+   * Lazy — the loader is called when the user navigates to the page.
+   * The resolved module must have a React component as `default` export.
+   * Title and icon are taken from the module's `manifest.json` / `locales/`.
+   */
+  registerPage(loader: () => Promise<{ default: ComponentType<any> }>): void
+}
+
+/**
+ * Type for the module's exported setup function.
+ *
+ * ```ts
+ * export const setup: FocusModuleSetup = (api) => {
+ *   api.registerWidget(() => import('./widget'))
+ * }
+ * ```
+ */
+export type FocusModuleSetup = (api: FocusModuleApi) => void
+
+// ---------------------------------------------------------------------------
 // ReactWidgetElement — base class for custom element wrappers
 // ---------------------------------------------------------------------------
 
@@ -132,6 +194,10 @@ export type Styles = Record<string, CSSProperties>
  *
  * Handles React root lifecycle (unmount on disconnect).
  * Prefer using {@link registerWidget} instead of subclassing directly.
+ *
+ * @deprecated Use the `setup(api)` entry point pattern instead.
+ * Register components via {@link FocusModuleApi.registerWidget} in your
+ * `setup` function. This class will be removed after all modules migrate.
  */
 export class ReactWidgetElement extends HTMLElement {
   _root: import('react-dom/client').Root | null = null
@@ -160,6 +226,10 @@ export class ReactWidgetElement extends HTMLElement {
  *
  * The SDK sets this automatically via `registerWidget`. Module components
  * read it via `usePortalContainer()`.
+ *
+ * @deprecated Use the `setup(api)` entry point pattern. When modules render
+ * on dedicated routes via {@link FocusModuleApi.registerPage}, the portal
+ * conflict is resolved architecturally. Will be removed after all modules migrate.
  */
 export const PortalContainerContext = createContext<HTMLElement | null>(null)
 
@@ -167,6 +237,8 @@ export const PortalContainerContext = createContext<HTMLElement | null>(null)
  * Return the portal container element from context, or `null` if none.
  * Use in any component that renders a portal (Radix, createPortal, etc.)
  * to redirect content into the correct DOM subtree.
+ *
+ * @deprecated See {@link PortalContainerContext}.
  */
 export function usePortalContainer(): HTMLElement | null {
   return useContext(PortalContainerContext)
