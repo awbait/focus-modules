@@ -2,7 +2,7 @@ import * as React from 'react'
 
 const { useState, useEffect, useRef, useCallback, useMemo } = React
 
-import { registerWidget, usePermission } from '@focus-dashboard/sdk-types'
+import { usePermission } from '@focus-dashboard/sdk-types'
 import {
   DropletIcon,
   InjectionIcon,
@@ -644,4 +644,4 @@ function PillCalendar({ focus }: WidgetProps) {
   )
 }
 
-registerWidget('pill-tracker-calendar-widget', PillCalendar)
+export default PillCalendar

@@ -3,7 +3,7 @@ import * as React from 'react'
 const { useState, useEffect, useCallback } = React
 
 import type { FocusInstance } from '@focus-dashboard/sdk-types'
-import { registerWidget, usePermission } from '@focus-dashboard/sdk-types'
+import { usePermission } from '@focus-dashboard/sdk-types'
 import {
   Add01Icon,
   ArrowLeft02Icon,
@@ -1652,4 +1652,4 @@ function AddScheduleDialog({
   )
 }
 
-registerWidget('pill-tracker-settings', SettingsApp)
+export default SettingsApp
