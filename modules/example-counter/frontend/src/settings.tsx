@@ -1,5 +1,5 @@
 import type { FocusInstance } from '@focus-dashboard/sdk-types'
-import { baseStyles, registerWidget, usePermission } from '@focus-dashboard/sdk-types'
+import { baseStyles, usePermission } from '@focus-dashboard/sdk-types'
 import React, { useEffect, useState } from 'react'
 import type { Styles, WidgetSettings } from './types'
 
@@ -114,4 +114,4 @@ const styles: Styles = {
   disabled: baseStyles.disabled,
 }
 
-registerWidget('example-counter-settings', SettingsApp)
+export default SettingsApp

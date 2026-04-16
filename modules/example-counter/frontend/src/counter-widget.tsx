@@ -1,4 +1,4 @@
-import { baseStyles, registerWidget, usePermission } from '@focus-dashboard/sdk-types'
+import { baseStyles, usePermission } from '@focus-dashboard/sdk-types'
 import React, { useCallback, useEffect, useState } from 'react'
 import type { Styles, ValueResponse, WidgetProps, WidgetSettings } from './types'
 
@@ -133,4 +133,4 @@ const styles: Styles = {
   disabled: baseStyles.disabled,
 }
 
-registerWidget('example-counter-counter-widget', CounterApp)
+export default CounterApp

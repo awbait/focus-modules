@@ -1,4 +1,4 @@
-import { baseStyles, registerWidget } from '@focus-dashboard/sdk-types'
+import { baseStyles } from '@focus-dashboard/sdk-types'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { HistoryEntry, Styles, WidgetProps } from './types'
 
@@ -151,4 +151,4 @@ const styles: Styles = {
   },
 }
 
-registerWidget('example-counter-chart-widget', ChartApp)
+export default ChartApp
