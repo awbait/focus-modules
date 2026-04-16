@@ -2,12 +2,12 @@
 /**
  * focus-build — standard build script for Focus Dashboard modules.
  *
- * Bundles widget.js (from src/index.ts) and optionally settings.js
- * (from src/settings.tsx) into dist/. React is marked as external —
- * the host app provides it via an import map.
+ * Bundles src/index.ts into dist/module.js. The entry must export a
+ * `setup(api: FocusModuleApi)` function. Bun automatically code-splits
+ * dynamic imports into separate chunks.
+ *
+ * React is marked as external — the host app provides it via an import map.
  */
-
-import { existsSync } from 'node:fs'
 
 const external = ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime']
 
@@ -18,6 +18,7 @@ async function bundle(entrypoint: string, outName: string) {
     naming: outName,
     format: 'esm',
     target: 'browser',
+    splitting: true,
     minify: false,
     external,
   })
@@ -27,11 +28,9 @@ async function bundle(entrypoint: string, outName: string) {
     for (const msg of result.logs) console.error(msg)
     process.exit(1)
   }
-  console.log(`  -> ${outName} (${(result.outputs[0].size / 1024).toFixed(1)} KB)`)
+
+  const totalKb = result.outputs.reduce((sum, o) => sum + o.size, 0) / 1024
+  console.log(`  -> ${outName} (${totalKb.toFixed(1)} KB total, ${result.outputs.length} chunk(s))`)
 }
 
-await bundle('src/index.ts', 'widget.js')
-
-if (existsSync('src/settings.tsx')) {
-  await bundle('src/settings.tsx', 'settings.js')
-}
+await bundle('src/index.ts', 'module.js')
