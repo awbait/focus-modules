@@ -2,8 +2,8 @@ import * as React from 'react'
 
 const { useState, useEffect, useCallback } = React
 
-import type { FocusInstance } from '@focus-dashboard/sdk-types'
-import { usePermission } from '@focus-dashboard/sdk-types'
+import type { FocusInstance } from '@focus-dashboard/module-sdk'
+import { usePermission } from '@focus-dashboard/module-sdk'
 import {
   Add01Icon,
   ArrowLeft02Icon,

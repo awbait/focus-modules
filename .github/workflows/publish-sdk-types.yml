@@ -1,4 +1,4 @@
-name: Publish @focus-dashboard/sdk-types
+name: Publish @focus-dashboard/module-sdk
 
 on:
   push:

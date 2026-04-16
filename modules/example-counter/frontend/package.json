@@ -6,7 +6,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@focus-dashboard/sdk-types": "^0.7.0",
+    "@focus-dashboard/module-sdk": "^0.7.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.7.0"

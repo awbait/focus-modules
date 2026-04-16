@@ -1,4 +1,4 @@
-import { usePortalContainer } from '@focus-dashboard/sdk-types'
+import { usePortalContainer } from '@focus-dashboard/module-sdk'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { Select as SelectPrimitive } from 'radix-ui'
 import * as React from 'react'

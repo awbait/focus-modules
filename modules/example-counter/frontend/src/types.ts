@@ -3,7 +3,7 @@ export type {
   FocusSDKGlobal,
   Styles,
   WidgetProps,
-} from '@focus-dashboard/sdk-types'
+} from '@focus-dashboard/module-sdk'
 
 // ---------------------------------------------------------------------------
 // Module-specific types

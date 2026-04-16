@@ -1,4 +1,4 @@
-import { baseStyles } from '@focus-dashboard/sdk-types'
+import { baseStyles } from '@focus-dashboard/module-sdk'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { HistoryEntry, Styles, WidgetProps } from './types'
 

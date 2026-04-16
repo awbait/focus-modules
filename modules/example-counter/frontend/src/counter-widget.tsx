@@ -1,4 +1,4 @@
-import { baseStyles, usePermission } from '@focus-dashboard/sdk-types'
+import { baseStyles, usePermission } from '@focus-dashboard/module-sdk'
 import React, { useCallback, useEffect, useState } from 'react'
 import type { Styles, ValueResponse, WidgetProps, WidgetSettings } from './types'
 

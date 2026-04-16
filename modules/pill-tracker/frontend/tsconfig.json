@@ -10,7 +10,7 @@
     "rootDir": "src",
     "outDir": "dist",
     "declaration": false,
-    "types": ["@focus-dashboard/sdk-types/globals", "react", "react-dom"]
+    "types": ["@focus-dashboard/module-sdk/globals", "react", "react-dom"]
   },
   "include": ["src"]
 }

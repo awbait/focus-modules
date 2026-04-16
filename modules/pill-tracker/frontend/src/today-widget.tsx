@@ -2,7 +2,7 @@ import * as React from 'react'
 
 const { useState, useEffect, useRef, useCallback, useMemo } = React
 
-import { usePermission } from '@focus-dashboard/sdk-types'
+import { usePermission } from '@focus-dashboard/module-sdk'
 import {
   DropletIcon,
   InjectionIcon,

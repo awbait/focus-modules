@@ -1,5 +1,5 @@
-import type { FocusInstance } from '@focus-dashboard/sdk-types'
-import { baseStyles, usePermission } from '@focus-dashboard/sdk-types'
+import type { FocusInstance } from '@focus-dashboard/module-sdk'
+import { baseStyles, usePermission } from '@focus-dashboard/module-sdk'
 import React, { useEffect, useState } from 'react'
 import type { Styles, WidgetSettings } from './types'
 

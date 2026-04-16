@@ -3,7 +3,7 @@ export type {
   FocusSDKGlobal,
   Styles,
   WidgetProps,
-} from '@focus-dashboard/sdk-types'
+} from '@focus-dashboard/module-sdk'
 
 // Types available at runtime but not yet in published sdk-types
 export interface FocusPublicUser {

@@ -1,4 +1,4 @@
-import type { FocusInstance } from '@focus-dashboard/sdk-types'
+import type { FocusInstance } from '@focus-dashboard/module-sdk'
 
 /** Mapping from SDK dateFormat to date-fns format tokens. */
 const DATE_FORMAT_MAP: Record<string, string> = {
